@@ -8,7 +8,8 @@
 *  Definition:
 *  ===========
 *
-*       SUBROUTINE SLARFT_LVL2( DIRECT, STOREV, N, K, V, LDV, TAU, T, LDT )
+*       SUBROUTINE SLARFT_LVL2( DIRECT, STOREV, N, K, V, LDV, TAU,
+*                    T, LDT )
 *
 *       .. Scalar Arguments ..
 *       CHARACTER          DIRECT, STOREV
@@ -149,15 +150,14 @@
 *> \endverbatim
 *>
 *  =====================================================================
-      SUBROUTINE SLARFT_LVL2(DIRECT, STOREV, N, K, V, LDV, TAU,
-     $            T, LDT)
+      SUBROUTINE SLARFT_LVL2( DIRECT, STOREV, N, K, V, LDV, TAU,
+     $            T, LDT )
 *
 *  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
 *  -- Univ. of California Berkeley, Univ. of Colorado Denver and NAG Ltd..--
 *
-*        .. Scalar Arguments
-*
+*     .. Scalar Arguments ..
       CHARACTER          DIRECT, STOREV
       INTEGER            K, LDT, LDV, N
 *     ..
