@@ -10,18 +10,18 @@
 *  Definition:
 *  ===========
 *
-*     SUBROUTINE DLARFB0C2(C2I, SIDE, TRANS, DIRECT, STOREV, M, N,
-*    $                     K, V, LDV, T, LDT, C, LDC)
-*        ! Scalar arguments
-*        INTEGER           M, N, K, LDV, LDC, LDT
-*        CHARACTER         SIDE, TRANS, DIRECT, STOREV 
-*        ! True means that we are assuming C2 is the identity matrix
-*        !     and thus don't reference whatever is present in C2 
-*        !     at the beginning.
-*        LOGICAL           C2I
-*        ! Array arguments
-*        DOUBLE PRECISION  V(LDV,*), C(LDC,*), T(LDT,*)
+*     SUBROUTINE DLARFB0C2( C2JOB, TINV, SIDE, TRANS, DIRECT,
+*    $                     STOREV, M, N, K, V, LDV, T, LDT, C, LDC )
 *
+*     .. Scalar Arguments ..
+*     INTEGER           M, N, K, LDV, LDC, LDT
+*     CHARACTER         SIDE, TRANS, DIRECT, STOREV, C2JOB
+*     ..
+*     .. Array Arguments ..
+*     DOUBLE PRECISION  V(LDV,*), C(LDC,*), T(LDT,*)
+*     ..
+*
+*  =====================================================================
 *
 *> \par Purpose:
 *  =============
@@ -35,11 +35,20 @@
 *  Arguments:
 *  ==========
 *
-*> \param[in] C2I
+*> \param[in] C2JOB
 *> \verbatim
-*>          C2I is LOGICAL
-*>          = .TRUE.: Assume the nonzero block of C is the identity matrix
-*>          = .FALSE.: Use existing data in the nonzero block of C
+*>          C2JOB is CHARACTER*1
+*>          = 'I': Assume C2 is the identity matrix
+*>          Otherwise: Treat C2 as a general matrix that we reference
+*> \endverbatim
+*>
+*> \param[in] TINV
+*> \verbatim
+*>          TINV is CHARACTER*1
+*>          = 'A':     When applying T we use trsm. See larft_ut for more
+*>                     information on how to construct such a T
+*>          Otherwise: When applying T we use trmm. See larft for more
+*>                     information on how to construct such a T
 *> \endverbatim
 *>
 *> \param[in] SIDE
@@ -177,380 +186,422 @@
 *> \endverbatim
 *>
 *  =====================================================================
-      SUBROUTINE DLARFB0C2(C2I, SIDE, TRANS, DIRECT, STOREV, M, N,
-     $                     K, V, LDV, T, LDT, C, LDC)
-         ! Scalar arguments
-         INTEGER           M, N, K, LDV, LDC, LDT
-         CHARACTER         SIDE, TRANS, DIRECT, STOREV 
-         ! True means that we are assuming C2 is the identity matrix
-         !     and thus don't reference whatever is present in C2 
-         !     at the beginning.
-         LOGICAL           C2I
-         ! Array arguments
-         DOUBLE PRECISION  V(LDV,*), C(LDC,*), T(LDT,*)
-         ! Local scalars
-         LOGICAL           QR, LQ, QL, RQ, DIRF, COLV, SIDEL, SIDER,
-     $                     TRANST
-         INTEGER           I, J
-         ! External functions
-         LOGICAL           LSAME
-         EXTERNAL          LSAME
-         ! External subroutines
-         EXTERNAL          DGEMM, DTRMM, XERBLA
-         ! Parameters
-         DOUBLE PRECISION ONE, ZERO, NEG_ONE
-         PARAMETER(ONE=1.0D+0, ZERO = 0.0D+0, NEG_ONE = -1.0D+0)
+      SUBROUTINE DLARFB0C2( C2JOB, TINV, SIDE, TRANS, DIRECT,
+     $                     STOREV, M, N, K, V, LDV, T, LDT, C, LDC )
+*
+*     .. Scalar Arguments ..
+      INTEGER           M, N, K, LDV, LDC, LDT
+      CHARACTER         SIDE, TRANS, DIRECT, STOREV, C2JOB, TINV
+*     ..
+*     .. Array Arguments ..
+      DOUBLE PRECISION  V(LDV,*), C(LDC,*), T(LDT,*)
+*     ..
+*
+*  =====================================================================
+*
+*     .. External Functions ..
+      LOGICAL           LSAME
+      EXTERNAL          LSAME
+*     ..
+*     .. External Subroutines ..
+      EXTERNAL          DGEMM, DTRMM, XERBLA
+*     ..
+*     .. Local Scalars ..
+      LOGICAL           QR, LQ, QL, RQ, DIRF, COLV, SIDEL, SIDER,
+     $                  TRANST, C2I, TSOLVE
+      INTEGER           I, J
+*     ..
+*     .. Local Parameters ..
+      DOUBLE PRECISION ONE, ZERO, NEG_ONE
+      PARAMETER(ONE=1.0D+0, ZERO = 0.0D+0, NEG_ONE = -1.0D+0)
+*     ..
+*
+*     Beginning of Executable Statements
+*
+      DIRF = LSAME(DIRECT,'F')
+      COLV = LSAME(STOREV,'C')
+      SIDEL = LSAME(SIDE,'L')
+      SIDER = LSAME(SIDE,'R')
+      TRANST = LSAME(TRANS,'T')
+      C2I = LSAME(C2JOB, 'I')
+      TSOLVE = LSAME(TINV, 'A')
+      ! Determine which of the 4 modes are using.
+      ! QR is when we store the reflectors column by column and have the
+      ! 'first' reflector stored in the first column
+      QR = DIRF.AND.COLV
 
-         ! Beginning of executable statements
-         ! Convert our character flags to logical values
-         DIRF = LSAME(DIRECT,'F')
-         COLV = LSAME(STOREV,'C')
-         SIDEL = LSAME(SIDE,'L')
-         SIDER = LSAME(SIDE,'R')
-         TRANST = LSAME(TRANS,'T')
+      ! LQ is when we store the reflectors row by row and have the
+      ! 'first' reflector stored in the first row
+      LQ = DIRF.AND.(.NOT.COLV)
 
-         ! Determine which of the 4 modes are using.
-         ! QR is when we store the reflectors column by column and have the
-         ! 'first' reflector stored in the first column
-         QR = DIRF.AND.COLV
+      ! QL is when we store the reflectors column by column and have the
+      ! 'first' reflector stored in the last column
+      QL = (.NOT.DIRF).AND.COLV
 
-         ! LQ is when we store the reflectors row by row and have the
-         ! 'first' reflector stored in the first row
-         LQ = DIRF.AND.(.NOT.COLV)
+      ! RQ is when we store the reflectors row by row and have the
+      ! 'first' reflector stored in the last row
+      RQ = (.NOT.DIRF).AND.(.NOT.COLV)
 
-         ! QL is when we store the reflectors column by column and have the
-         ! 'first' reflector stored in the last column
-         QL = (.NOT.DIRF).AND.COLV
-
-         ! RQ is when we store the reflectors row by row and have the
-         ! 'first' reflector stored in the last row
-         RQ = (.NOT.DIRF).AND.(.NOT.COLV)
-
-         IF (QR) THEN
-            ! We are computing C = HC = (I - VTV')C
-            ! Where: V = [ V1 ] and C = [ C1 ]
-            !            [ V2 ]         [ C2 ]
-            ! with the following dimensions:
-            !     V1\in\R^{K\times K}
-            !     V2\in\R^{M-K\times K}
-            !     C1=0\in\R^{K\times N}
-            !     C2\in\R^{M-K\times N}
-            ! Since we are assuming that C1 is a zero matrix and it will be
-            ! overwritten on exit, we can use this spot as a temporary workspace
-            ! without having to allocate anything extra.
-            ! This lets us simplify our above equation to get
-            !
-            ! C = HC = (I - [ V1 ]T [V1', V2'])[ 0  ]
-            !               [ V2 ]             [ C2 ]
-            !   = [ 0  ] - [ V1 ]T*V2'*C2
-            !     [ C2 ]   [ V2 ]
-            !
-            !   = [ 0  ] - [ V1*T*V2'*C2 ]
-            !     [ C2 ]   [ V2*T*V2'*C2 ]
-            !
-            !   = [      V1*T*V2'*C2 ]
-            !     [ C2 - V2*T*V2'*C2 ]
-            !
-            ! So, we can order our computations as follows:
-            !
-            ! C1 = V2'*C2
-            ! C1 = T*C1
-            ! C2 = C2 - V2*C1
-            ! C1 = -V1*C1
-            !
-            ! To achieve the same end result
-            !
-            ! Check to ensure side and trans are the expected values 
-            !
-            IF( .NOT.SIDEL ) THEN
-               CALL XERBLA('DLARFB0C2', 2)
-               RETURN
-            ELSE IF(TRANST) THEN
-               CALL XERBLA('DLARFB0C2', 3)
-               RETURN
-            END IF
-            !
-            ! C1 = V2'*C2
-            !
-            IF (C2I) THEN
-               DO J = 1, N
-                  DO I = 1, K
-                     C(I,J) = V(K+J,I)
-                  END DO
+      IF (QR) THEN
+         ! We are computing C = HC = (I - VTV')C
+         ! Where: V = [ V1 ] and C = [ C1 ]
+         !            [ V2 ]         [ C2 ]
+         ! with the following dimensions:
+         !     V1\in\R^{K\times K}
+         !     V2\in\R^{M-K\times K}
+         !     C1=0\in\R^{K\times N}
+         !     C2\in\R^{M-K\times N}
+         ! Since we are assuming that C1 is a zero matrix and it will be
+         ! overwritten on exit, we can use this spot as a temporary workspace
+         ! without having to allocate anything extra.
+         ! This lets us simplify our above equation to get
+         !
+         ! C = HC = (I - [ V1 ]T [V1', V2'])[ 0  ]
+         !               [ V2 ]             [ C2 ]
+         !   = [ 0  ] - [ V1 ]T*V2'*C2
+         !     [ C2 ]   [ V2 ]
+         !
+         !   = [ 0  ] - [ V1*T*V2'*C2 ]
+         !     [ C2 ]   [ V2*T*V2'*C2 ]
+         !
+         !   = [      V1*T*V2'*C2 ]
+         !     [ C2 - V2*T*V2'*C2 ]
+         !
+         ! So, we can order our computations as follows:
+         !
+         ! C1 = V2'*C2
+         ! C1 = T*C1
+         ! C2 = C2 - V2*C1
+         ! C1 = -V1*C1
+         !
+         ! To achieve the same end result
+         !
+         ! Check to ensure side and trans are the expected values
+         !
+         IF( .NOT.SIDEL ) THEN
+            CALL XERBLA('DLARFB0C2', 2)
+            RETURN
+         ELSE IF(TRANST) THEN
+            CALL XERBLA('DLARFB0C2', 3)
+            RETURN
+         END IF
+         !
+         ! C1 = V2'*C2
+         !
+         IF (C2I) THEN
+            DO J = 1, N
+               DO I = 1, K
+                  C(I,J) = V(K+J,I)
                END DO
-            ELSE
-               CALL DGEMM('Transpose', 'No Transpose', K, N, M - K,
-     $                     ONE, V(K+1,1), LDV, C(K+1,1), LDC, ZERO,
-     $                     C, LDC)
-            END IF
+            END DO
+         ELSE
+            CALL DGEMM('Transpose', 'No Transpose', K, N, M - K,
+     $                  ONE, V(K+1,1), LDV, C(K+1,1), LDC, ZERO,
+     $                  C, LDC)
+         END IF
+         ! Apply T through either a triangular solve or multiplication
+         IF (TSOLVE) THEN
+            !
+            ! Solve C1 = T*C1 for C1
+            !
+            CALL DTRSM('Left', 'Upper', 'No Transpose', 'Non-unit',
+     $                  K, N, ONE, T, LDT, C, LDC)
+         ELSE
             !
             ! C1 = T*C1
             !
             CALL DTRMM('Left', 'Upper', 'No Transpose', 'Non-unit',
      $                  K, N, ONE, T, LDT, C, LDC)
-            !
-            ! C2 = C2 - V2*C1 = -V2*C1 + C2
-            !
-            IF (C2I) THEN
-               CALL DGEMM('No Transpose', 'No Transpose', M-K, N, K,
-     $                     NEG_ONE, V(K+1,1), LDV, C, LDC, ZERO,
-     $                     C(K+1,1), LDC)
-               DO I = 1, N
-                  C(K+I,I) = C(K+I,I) + ONE
+         END IF
+         !
+         ! C2 = C2 - V2*C1 = -V2*C1 + C2
+         !
+         IF (C2I) THEN
+            CALL DGEMM('No Transpose', 'No Transpose', M-K, N, K,
+     $                  NEG_ONE, V(K+1,1), LDV, C, LDC, ZERO,
+     $                  C(K+1,1), LDC)
+            DO I = 1, N
+               C(K+I,I) = C(K+I,I) + ONE
+            END DO
+         ELSE
+            CALL DGEMM('No Transpose', 'No Transpose', M-K, N, K,
+     $                  NEG_ONE, V(K+1,1), LDV, C, LDC, ONE,
+     $                  C(K+1,1), LDC)
+         END IF
+         !
+         ! C1 = -V1*C1
+         !
+         CALL DTRMM('Left', 'Lower', 'No Transpose', 'Unit',
+     $               K, N, NEG_ONE, V, LDV, C, LDC)
+         ! Total: 4mnk^2 - 3nk^2
+      ELSE IF (LQ) THEN
+         ! We are computing C = C op(H) = C(I-V' op(T) V)
+         ! Where: V = [ V1 V2 ] and C = [ C1 C2 ]
+         ! with the following dimensions:
+         !     V1\in\R^{K\times K}
+         !     V2\in\R^{K\times N-K}
+         !     C1=0\in\R^{M\times K}
+         !     C2\in\R^{M\times N-K}
+         ! Since we are assuming that C1 is a zero matrix and it will be
+         ! overwritten on exit, we can use this spot as a temporary workspace
+         ! without having to allocate anything extra.
+         ! This lets us simplify our above equation to get
+         !
+         ! C = C op(H) = [ 0, C2 ](I - [ V1' ]op(T)[ V1, V2 ])
+         !                             [ V2' ]
+         !
+         !   = [ 0, C2 ] - [ 0, C2 ][ V1' ]op(T)[ V1, V2 ]
+         !                          [ V2' ]
+         !
+         !   = [ 0, C2 ] - C2*V2'*op(T)[ V1, V2 ]
+         !
+         !   = [ -C2*V2'*op(T)*V1, C2 - C2*V2'*op(T)*V2 ]
+         !
+         ! So, we can order our computations as follows:
+         !
+         ! C1 = C2*V2'
+         ! C1 = C1*op(T)
+         ! C2 = C2 - C1*V2
+         ! C1 = -C1*V1
+         !
+         ! To achieve the same end result
+         !
+         ! Check to ensure side and trans are the expected values
+         !
+         IF( .NOT.SIDER ) THEN
+            CALL XERBLA('DLARFB0C2', 2)
+            RETURN
+         END IF
+         !
+         ! C1 = C2*V2'
+         !
+         IF( C2I ) THEN
+            DO J = 1, K
+               DO I = 1, M
+                  C(I,J) = V(J,K+I)
                END DO
+            END DO
+         ELSE
+            CALL DGEMM('No Transpose', 'Transpose', M, K, N-K,
+     $            ONE, C(1,K+1), LDC, V(1, K+1), LDV, ZERO, C,
+     $            LDC)
+         END IF
+         !
+         ! C1 = C1*op(T)
+         !
+         IF (TRANST) THEN
+            IF (TSOLVE) THEN
+               CALL DTRSM('Right', 'Upper', 'Transpose',
+     $               'Non-unit', M, K, ONE, T, LDT, C, LDC)
             ELSE
-               CALL DGEMM('No Transpose', 'No Transpose', M-K, N, K,
-     $                     NEG_ONE, V(K+1,1), LDV, C, LDC, ONE,
-     $                     C(K+1,1), LDC)
-            END IF
-            !
-            ! C1 = -V1*C1
-            !
-            CALL DTRMM('Left', 'Lower', 'No Transpose', 'Unit',
-     $                  K, N, NEG_ONE, V, LDV, C, LDC)
-         ELSE IF (LQ) THEN
-            ! We are computing C = C op(H) = C(I-V' op(T) V)
-            ! Where: V = [ V1 V2 ] and C = [ C1 C2 ]
-            ! with the following dimensions:
-            !     V1\in\R^{K\times K}
-            !     V2\in\R^{K\times N-K}
-            !     C1=0\in\R^{M\times K}
-            !     C2\in\R^{M\times N-K}
-            ! Since we are assuming that C1 is a zero matrix and it will be
-            ! overwritten on exit, we can use this spot as a temporary workspace
-            ! without having to allocate anything extra.
-            ! This lets us simplify our above equation to get
-            !
-            ! C = C op(H) = [ 0, C2 ](I - [ V1' ]op(T)[ V1, V2 ])
-            !                             [ V2' ]
-            !
-            !   = [ 0, C2 ] - [ 0, C2 ][ V1' ]op(T)[ V1, V2 ]
-            !                          [ V2' ]
-            !
-            !   = [ 0, C2 ] - C2*V2'*op(T)[ V1, V2 ]
-            !
-            !   = [ -C2*V2'*op(T)*V1, C2 - C2*V2'*op(T)*V2 ]
-            !
-            ! So, we can order our computations as follows:
-            !
-            ! C1 = C2*V2'
-            ! C1 = C1*op(T)
-            ! C2 = C2 - C1*V2
-            ! C1 = -C1*V1
-            !
-            ! To achieve the same end result
-            !
-            ! Check to ensure side and trans are the expected values 
-            !
-            IF( .NOT.SIDER ) THEN
-               CALL XERBLA('DLARFB0C2', 2)
-               RETURN
-            END IF
-            !
-            ! C1 = C2*V2'
-            !
-            IF( C2I ) THEN
-               DO J = 1, K
-                  DO I = 1, M
-                     C(I,J) = V(J,K+I)
-                  END DO
-               END DO
-            ELSE
-               CALL DGEMM('No Transpose', 'Transpose', M, K, N-K,
-     $               ONE, C(1,K+1), LDC, V(1, K+1), LDV, ZERO, C,
-     $               LDC)
-            END IF
-            !
-            ! C1 = C1*T'
-            !
-            IF (TRANST) THEN
                CALL DTRMM('Right', 'Upper', 'Transpose',
+     $               'Non-unit', M, K, ONE, T, LDT, C, LDC)
+            END IF
+         ELSE
+            IF (TSOLVE) THEN
+               CALL DTRSM('Right', 'Lower', 'No Transpose',
      $               'Non-unit', M, K, ONE, T, LDT, C, LDC)
             ELSE
                CALL DTRMM('Right', 'Lower', 'No Transpose',
      $               'Non-unit', M, K, ONE, T, LDT, C, LDC)
             END IF
-            !
-            ! C2 = C2 - C1*V2 = -C1*V2 + C2
-            !
-            IF( C2I ) THEN
-               CALL DGEMM('No Transpose', 'No Transpose', M, N-K, K,
-     $               NEG_ONE, C, LDC, V(1,K+1), LDV, ZERO, C(1,K+1),
-     $               LDC)
-               DO I = 1, M
-                  C(I,K+I) = C(I,K+I) + ONE
+         END IF
+         !
+         ! C2 = C2 - C1*V2 = -C1*V2 + C2
+         !
+         IF( C2I ) THEN
+            CALL DGEMM('No Transpose', 'No Transpose', M, N-K, K,
+     $            NEG_ONE, C, LDC, V(1,K+1), LDV, ZERO, C(1,K+1),
+     $            LDC)
+            DO I = 1, M
+               C(I,K+I) = C(I,K+I) + ONE
+            END DO
+         ELSE
+            CALL DGEMM('No Transpose', 'No Transpose', M, N-K, K,
+     $            NEG_ONE, C, LDC, V(1,K+1), LDV, ONE, C(1,K+1),
+     $            LDC)
+         END IF
+         !
+         ! C1 = -C1*V1
+         !
+         CALL DTRMM('Right', 'Upper', 'No Transpose', 'Unit',
+     $         M, K, NEG_ONE, V, LDV, C, LDC)
+      ELSE IF (QL) THEN
+         ! We are computing C = HC = (I - VTV')C
+         ! Where: V = [ V2 ] and C = [ C2 ]
+         !            [ V1 ]         [ C1 ]
+         ! with the following dimensions:
+         !     V1\in\R^{K\times K}
+         !     V2\in\R^{M-K\times K}
+         !     C1=0\in\R^{K\times N}
+         !     C2\in\R^{M-K\times N}
+         ! Since we are assuming that C1 is a zero matrix and it will be
+         ! overwritten on exit, we can use this spot as a temporary workspace
+         ! without having to allocate anything extra.
+         ! This lets us simplify our above equation to get
+         !
+         ! C = HC = (I-[ V2 ]T[ V2' V1' ])[ C2 ]
+         !             [ V1 ]             [ 0  ]
+         !
+         !   = [ C2 ] - [ V2 ]T*V2'*C2
+         !     [ 0  ]   [ V1 ]
+         !
+         !   = [ C2 ] - [ V2*T*V2'*C2 ]
+         !     [ 0  ]   [ V1*T*V2'*C2 ]
+         !
+         !   = [ C2 - V2*T*V2'*C2 ]
+         !     [    - V1*T*V2'*C2 ]
+         !
+         ! So, we can order our computations as follows:
+         !
+         ! C1 = V2'*C2
+         ! C1 = T*C1
+         ! C2 = C2 - V2*C1
+         ! C1 = -V1*C1
+         !
+         ! To achieve the same end result
+         !
+         ! Check to ensure side and trans are the expected values
+         !
+         IF( .NOT.SIDEL ) THEN
+            CALL XERBLA('DLARFB0C2', 2)
+            RETURN
+         ELSE IF(TRANST) THEN
+            CALL XERBLA('DLARFB0C2', 3)
+            RETURN
+         END IF
+         !
+         ! C1 = V2'*C2
+         !
+         IF( C2I ) THEN
+            DO J = 1, N
+               DO I = 1, K
+                  C(M-K+I,J) = V(J,I)
                END DO
-            ELSE
-               CALL DGEMM('No Transpose', 'No Transpose', M, N-K, K,
-     $               NEG_ONE, C, LDC, V(1,K+1), LDV, ONE, C(1,K+1),
-     $               LDC)
-            END IF
-            !
-            ! C1 = -C1*V1
-            !
-            CALL DTRMM('Right', 'Upper', 'No Transpose', 'Unit',
-     $            M, K, NEG_ONE, V, LDV, C, LDC)
-         ELSE IF (QL) THEN
-            ! We are computing C = HC = (I - VTV')C
-            ! Where: V = [ V2 ] and C = [ C2 ]
-            !            [ V1 ]         [ C1 ]
-            ! with the following dimensions:
-            !     V1\in\R^{K\times K}
-            !     V2\in\R^{M-K\times K}
-            !     C1=0\in\R^{K\times N}
-            !     C2\in\R^{M-K\times N}
-            ! Since we are assuming that C1 is a zero matrix and it will be
-            ! overwritten on exit, we can use this spot as a temporary workspace
-            ! without having to allocate anything extra.
-            ! This lets us simplify our above equation to get
-            !
-            ! C = HC = (I-[ V2 ]T[ V2' V1' ])[ C2 ]
-            !             [ V1 ]             [ 0  ]
-            !
-            !   = [ C2 ] - [ V2 ]T*V2'*C2
-            !     [ 0  ]   [ V1 ]
-            !
-            !   = [ C2 ] - [ V2*T*V2'*C2 ]
-            !     [ 0  ]   [ V1*T*V2'*C2 ]
-            !
-            !   = [ C2 - V2*T*V2'*C2 ]
-            !     [    - V1*T*V2'*C2 ]
-            !
-            ! So, we can order our computations as follows:
-            !
-            ! C1 = V2'*C2
-            ! C1 = T*C1
-            ! C2 = C2 - V2*C1
-            ! C1 = -V1*C1
-            !
-            ! To achieve the same end result
-            !
-            ! Check to ensure side and trans are the expected values 
-            !
-            IF( .NOT.SIDEL ) THEN
-               CALL XERBLA('DLARFB0C2', 2)
-               RETURN
-            ELSE IF(TRANST) THEN
-               CALL XERBLA('DLARFB0C2', 3)
-               RETURN
-            END IF
-            !
-            ! C1 = V2'*C2
-            !
-            IF( C2I ) THEN
-               DO J = 1, N
-                  DO I = 1, K
-                     C(M-K+I,J) = V(J,I)
-                  END DO
-               END DO
-            ELSE
-               CALL DGEMM('Transpose', 'No Transpose', K, N, M-K,
-     $            ONE, V, LDV, C, LDC, ZERO, C(M-K+1, 1), LDC)
-            END IF
-            !
-            ! C1 = T*C1
-            !
+            END DO
+         ELSE
+            CALL DGEMM('Transpose', 'No Transpose', K, N, M-K,
+     $         ONE, V, LDV, C, LDC, ZERO, C(M-K+1, 1), LDC)
+         END IF
+         !
+         ! C1 = T*C1
+         !
+         IF (TSOLVE) THEN
+            CALL DTRSM('Left', 'Lower', 'No Transpose', 'Non-unit',
+     $         K, N, ONE, T, LDT, C(M-K+1,1), LDC)
+         ELSE
             CALL DTRMM('Left', 'Lower', 'No Transpose', 'Non-unit',
      $         K, N, ONE, T, LDT, C(M-K+1,1), LDC)
-            !
-            ! C2 = C2 - V2*C1 = -V2*C1 + C2
-            !
-            IF( C2I ) THEN
-               CALL DGEMM('No Transpose', 'No Transpose', M-K, N, K,
-     $            NEG_ONE, V, LDV, C(M-K+1,1), LDC, ZERO, C, LDC)
-               DO I = 1, N
-                  C(I,I) = C(I,I) + ONE
+         END IF
+         !
+         ! C2 = C2 - V2*C1 = -V2*C1 + C2
+         !
+         IF( C2I ) THEN
+            CALL DGEMM('No Transpose', 'No Transpose', M-K, N, K,
+     $         NEG_ONE, V, LDV, C(M-K+1,1), LDC, ZERO, C, LDC)
+            DO I = 1, N
+               C(I,I) = C(I,I) + ONE
+            END DO
+         ELSE
+            CALL DGEMM('No Transpose', 'No Transpose', M-K, N, K,
+     $         NEG_ONE, V, LDV, C(M-K+1,1), LDC, ONE, C, LDC)
+         END IF
+         !
+         ! C1 = -V1*C1
+         !
+         CALL DTRMM('Left', 'Upper', 'No Transpose', 'Unit',
+     $      K, N, NEG_ONE, V(M-K+1,1), LDV, C(M-K+1,1), LDC)
+      ELSE IF (RQ) THEN
+         ! We are computing C = C op(H) = C(I-V' op(T) V)
+         ! Where: V = [ V2 V1] and C = [ C2 C1 ]
+         ! with the following dimensions:
+         !     V1\in\R^{K\times K}
+         !     V2\in\R^{K\times N-K}
+         !     C1=0\in\R^{M\times K}
+         !     C2\in\R^{M\times N-K}
+         ! Since we are assuming that C1 is a zero matrix and it will be
+         ! overwritten on exit, we can use this spot as a temporary workspace
+         ! without having to allocate anything extra.
+         ! This lets us simplify our above equation to get
+         !
+         ! C = C op(H) = [ C2, 0 ] (I - [ V2' ]op(T)[ V2, V1 ]
+         !                              [ V1' ]
+         !
+         !   = [ C2, 0 ] - [ C2, 0 ] [ V2' ]op(T)[ V2, V1 ]
+         !                           [ V1' ]
+         !
+         !   = [ C2, 0 ] - C2*V2'*op(T)[ V2, V1 ]
+         !
+         !   = [ C2, 0 ] - [ C2*V2'*op(T)*V2, C2*V2'*op(T)*V1 ]
+         !
+         !   = [ C2 - C2*V2'*op(T)*V2, -C2*V2'*op(T)*V1 ]
+         !
+         ! So, we can order our computations as follows:
+         !
+         ! C1 = C2*V2'
+         ! C1 = C1*op(T)
+         ! C2 = C2 - C1*V2
+         ! C1 = -C1*V1
+         !
+         !
+         ! To achieve the same end result
+         !
+         ! Check to ensure side has the expected value
+         !
+         IF( .NOT.SIDER ) THEN
+            CALL XERBLA('DLARFB0C2', 2)
+            RETURN
+         END IF
+         !
+         ! C1 = C2*V2'
+         !
+         IF( C2I ) THEN
+            DO J = 1, K
+               DO I = 1, M
+                  C(I,N-K+J) = V(J,I)
                END DO
+            END DO
+         ELSE
+            CALL DGEMM('No Transpose', 'Transpose', M, K, N-K,
+     $         ONE, C, LDC, V, LDV, ZERO, C(1, N-K+1), LDC)
+         END IF
+         !
+         ! C1 = C1*op(T)
+         !
+         IF( TRANST ) THEN
+            IF (TSOLVE) THEN
+               CALL DTRSM('Right', 'Lower', 'Transpose',
+     $            'Non-unit', M, K, ONE, T, LDT, C(1, N-K+1), LDC)
             ELSE
-               CALL DGEMM('No Transpose', 'No Transpose', M-K, N, K,
-     $            NEG_ONE, V, LDV, C(M-K+1,1), LDC, ONE, C, LDC)
-            END IF
-            !
-            ! C1 = -V1*C1
-            !
-            CALL DTRMM('Left', 'Upper', 'No Transpose', 'Unit',
-     $         K, N, NEG_ONE, V(M-K+1,1), LDV, C(M-K+1,1), LDC)
-         ELSE IF (RQ) THEN
-            ! We are computing C = C op(H) = C(I-V' op(T) V)
-            ! Where: V = [ V2 V1] and C = [ C2 C1 ]
-            ! with the following dimensions:
-            !     V1\in\R^{K\times K}
-            !     V2\in\R^{K\times N-K}
-            !     C1=0\in\R^{M\times K}
-            !     C2\in\R^{M\times N-K}
-            ! Since we are assuming that C1 is a zero matrix and it will be
-            ! overwritten on exit, we can use this spot as a temporary workspace
-            ! without having to allocate anything extra.
-            ! This lets us simplify our above equation to get
-            !
-            ! C = C op(H) = [ C2, 0 ] (I - [ V2' ]op(T)[ V2, V1 ]
-            !                              [ V1' ]
-            !
-            !   = [ C2, 0 ] - [ C2, 0 ] [ V2' ]op(T)[ V2, V1 ]
-            !                           [ V1' ]
-            !
-            !   = [ C2, 0 ] - C2*V2'*op(T)[ V2, V1 ]
-            !
-            !   = [ C2, 0 ] - [ C2*V2'*op(T)*V2, C2*V2'*op(T)*V1 ]
-            !
-            !   = [ C2 - C2*V2'*op(T)*V2, -C2*V2'*op(T)*V1 ]
-            !
-            ! So, we can order our computations as follows:
-            !
-            ! C1 = C2*V2'
-            ! C1 = C1*op(T)
-            ! C2 = C2 - C1*V2
-            ! C1 = -C1*V1
-            !
-            !
-            ! To achieve the same end result
-            !
-            ! Check to ensure side has the expected value
-            !
-            IF( .NOT.SIDER ) THEN
-               CALL XERBLA('DLARFB0C2', 2)
-               RETURN
-            END IF
-            !
-            ! C1 = C2*V2'
-            !
-            IF( C2I ) THEN
-               DO J = 1, K
-                  DO I = 1, M
-                     C(I,N-K+J) = V(J,I)
-                  END DO
-               END DO
-            ELSE
-               CALL DGEMM('No Transpose', 'Transpose', M, K, N-K,
-     $            ONE, C, LDC, V, LDV, ZERO, C(1, N-K+1), LDC)
-            END IF
-            !
-            ! C1 = C1*op(T)
-            !
-            IF( TRANST ) THEN
                CALL DTRMM('Right', 'Lower', 'Transpose',
+     $            'Non-unit', M, K, ONE, T, LDT, C(1, N-K+1), LDC)
+            END IF
+         ELSE
+            IF (TSOLVE) THEN
+               CALL DTRSM('Right', 'Upper', 'No Transpose',
      $            'Non-unit', M, K, ONE, T, LDT, C(1, N-K+1), LDC)
             ELSE
                CALL DTRMM('Right', 'Upper', 'No Transpose',
      $            'Non-unit', M, K, ONE, T, LDT, C(1, N-K+1), LDC)
             END IF
-            !
-            ! C2 = C2 - C1*V2 = -C1*V2 + C2
-            !
-            IF( C2I ) THEN
-               CALL DGEMM('No Transpose', 'No Transpose', M, N-K, K,
-     $            NEG_ONE, C(1, N-K+1), LDC, V, LDV, ZERO, C, LDC)
-               DO I = 1, M
-                  C(I,I) = C(I,I) + ONE
-               END DO
-            ELSE
-               CALL DGEMM('No Transpose', 'No Transpose', M, N-K, K,
-     $            NEG_ONE, C(1, N-K+1), LDC, V, LDV, ONE, C, LDC)
-            END IF
-            !
-            ! C1 = -C1*V1
-            !
-            CALL DTRMM('Right', 'Lower', 'No Transpose', 'Unit',
-     $         M, K, NEG_ONE, V(1, N-K+1), LDV, C(1,N-K+1), LDC)
          END IF
+         !
+         ! C2 = C2 - C1*V2 = -C1*V2 + C2
+         !
+         IF( C2I ) THEN
+            CALL DGEMM('No Transpose', 'No Transpose', M, N-K, K,
+     $         NEG_ONE, C(1, N-K+1), LDC, V, LDV, ZERO, C, LDC)
+            DO I = 1, M
+               C(I,I) = C(I,I) + ONE
+            END DO
+         ELSE
+            CALL DGEMM('No Transpose', 'No Transpose', M, N-K, K,
+     $         NEG_ONE, C(1, N-K+1), LDC, V, LDV, ONE, C, LDC)
+         END IF
+         !
+         ! C1 = -C1*V1
+         !
+         CALL DTRMM('Right', 'Lower', 'No Transpose', 'Unit',
+     $      M, K, NEG_ONE, V(1, N-K+1), LDV, C(1,N-K+1), LDC)
+      END IF
       END SUBROUTINE

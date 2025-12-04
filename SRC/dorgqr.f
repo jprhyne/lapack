@@ -223,9 +223,9 @@
 *
 *           Apply H to A(i:m,i+ib:n) from the left
 *
-         CALL DLARFB0C2(.TRUE., 'Left', 'No Transpose', 'Forward',
-     $      'Column', M-I+1, N-(I+IB)+1, IB, A(I,I), LDA, A(I,I),
-     $      LDA, A(I,I+IB), LDA)
+         CALL DLARFB0C2('Identity', 'B', 'Left', 'No Transpose',
+     $      'Forward', 'Column', M-I+1, N-(I+IB)+1, IB, A(I,I), LDA,
+     $      A(I,I), LDA, A(I,I+IB), LDA)
 *
 *        Apply H to rows i:m of current block
 *
@@ -241,7 +241,7 @@
 *
 *           Apply H to A(i:m,i+ib:n) from the left
 *
-            CALL DLARFB0C2(.FALSE., 'Left', 'No Transpose',
+            CALL DLARFB0C2('General', 'B', 'Left', 'No Transpose',
      $         'Forward', 'Column', M-I+1, N-(I+IB)+1, IB, A(I,I),
      $         LDA, A(I,I), LDA, A(I,I+IB), LDA)
 
@@ -267,7 +267,7 @@
 *
 *           Apply H to A(i:m,i+ib:n) from the left
 *
-            CALL DLARFB0C2(.FALSE., 'Left', 'No Transpose',
+            CALL DLARFB0C2('General', 'B', 'Left', 'No Transpose',
      $         'Forward', 'Column', M-I+1, N-(I+IB)+1, IB, A(I,I),
      $         LDA, A(I,I), LDA, A(I,I+IB), LDA)
 

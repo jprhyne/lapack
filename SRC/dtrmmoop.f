@@ -212,17 +212,20 @@
 *        .. External Functions ..
          LOGICAL           LSAME
          DOUBLE PRECISION  DDOT
-         EXTERNAL          LSAME, DDOT
+         INTEGER           ILAENV
+         EXTERNAL          LSAME, DDOT, ILAENV
 *        ..
 *        .. External Subroutines ..
-         EXTERNAL          DGEMM, DAXPY, DLASET, DSCAL
+         EXTERNAL          DGEMM, DAXPY, DLASET, DSCAL,
+     $                     DTRMVOOP
 *        ..
 *        .. Intrinsic Functions ..
          INTRINSIC         MIN
 *        ..
 *        .. Local Scalars ..
-         INTEGER           I, L, INCB
+         INTEGER           L, INCB, NX
          LOGICAL           LSIDE, UPPER, UNIT, TRANST, TRANSG
+         CHARACTER         TRANSF
 *        ..
 *        .. Local Parameters ..
          DOUBLE PRECISION  ONE, ZERO
@@ -233,29 +236,55 @@
 *
          LSIDE = LSAME(SIDE, 'L')
          UPPER = LSAME(UPLO, 'U')
-         ! If we are transposing the triangular matrix (A)
+*
+*        Determine if we are transposing the triangular matrix A
+*
          TRANST= LSAME(TRANSA, 'T').OR.LSAME(TRANSA, 'C')
-         ! If we are transposing the general matrix (B)
+*
+*        Determine if we are transposing the general matrix B
+*
          TRANSG= LSAME(TRANSB, 'T').OR.LSAME(TRANSB, 'C')
+         UNIT  = LSAME(DIAG, 'U')
+*
+*        Determine when to use a level2 BLAS terminating case
+*
+         NX = ILAENV(3, 'DTRMMOOP',
+     $            SIDE // UPLO // TRANSA // TRANSB // DIAG,
+     $            M, N, -1, -1)
+         IF (MIN(M,N).LT.NX) THEN
+            CALL DTRMMOOP_LVL2(SIDE, UPLO, TRANSA, TRANSB, DIAG,
+     $            M, N, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
+            RETURN
+         END IF
 *
 *        Terminating Case
 *
-         UNIT  = LSAME(DIAG, 'U')
          IF (M.EQ.1.AND.N.EQ.1) THEN
 *
 *           This case is the simplest as we are just computing C = \alpha A*B +
-*           \beta C where all components are 1-by-1 matrices
+*           \beta C where all components are 1-by-1 matrices, thus treated as
+*           scalars
 *
-
+*           First, we compute C = \beta*C
+*
             IF (BETA.EQ.ZERO) THEN
                C(1,1) = ZERO
             ELSE
                C(1,1) = C(1,1) * BETA
             END IF
+*
+*           Now, we compute C = \alpha*A*B + C
+*
             IF(ALPHA.NE.ZERO) THEN
                IF(UNIT) THEN
+*
+*                 Compute C = \alpha*B+C
+*
                   C(1,1) = C(1,1) + ALPHA*B(1,1)
                ELSE
+*
+*                 Compute C = \alpha*A*B+C
+*
                   C(1,1) = C(1,1) + ALPHA*A(1,1)*B(1,1)
                END IF
             END IF
@@ -266,26 +295,33 @@
 *           set it explicitly, otherwise we overwrite it with BETA*C
 *
             IF (BETA.EQ.ZERO) THEN
-               ! This ensures we don't reference C unless we need to
                CALL DLASET('All', M, N, ZERO, ZERO, C, LDC)
             ELSE
                CALL DSCAL(N, BETA, C, LDC)
             END IF
             IF (ALPHA.NE.ZERO) THEN
 *
-*              Recall that the number of columns of A is determined by SIDE
+*              Determine if B is stored as a column or row. Regardless
+*              of if A is on the left or right, op(B)\in\R^{m\times n}.
 *
+               IF (TRANSG) THEN
+*
+*                 This means that B is stored as a column vector
+*
+                  INCB = 1
+               ELSE
+*
+*                 This means that B is stored as a row vector
+*
+                  INCB = LDB
+               END IF
                IF (LSIDE) THEN
 *
-*                 Determine if B is a row or column vector
+*                 This means we are computing
+*                 C = \alpha*op(A)*B + C
 *
-                  IF (TRANSG) THEN
-                     INCB = 1   ! This means that B is a column vector
-                  ELSE
-                     INCB = LDB ! This means that B is a row vector
-                  END IF
-*
-*                 This means that A is a scalar, so it is either assumed to be
+*                 Since this means A\in\R^{m\times m} = \R^{1\times 1},
+*                 A should be treated as a scalar that is either assumed to be
 *                 ONE or explicitly stored in A(1,1)
 *
                   IF (UNIT) THEN
@@ -293,115 +329,20 @@
                   ELSE
                      CALL DAXPY(N, ALPHA * A(1,1), B, INCB, C, LDC)
                   END IF
-               ELSE ! A is on the right
+               ELSE
 *
-*                 Determine if B is a row or column vector
+*                 This means we are computing
+*                 C = \alpha*B*op(A) + C = alpha*op(A)**T*B + C
 *
-                  IF (TRANSG) THEN
-                     INCB = 1    ! This means that B is a column vector
-                  ELSE
-                     INCB = LDB  ! This means that B is a row vector
+*                 In order to use our routine DTRMVOOP, we must flip the
+*                 transpose flag
+*
+                  TRANSF = 'T'
+                  IF (TRANST) THEN
+                     TRANSF = 'N'
                   END IF
-*
-*                 This means that A is an n-by-n matrix
-*
-                  IF (UPPER) THEN
-                     IF (TRANST) THEN
-                        IF (TRANSG) THEN
-                           IF (UNIT) THEN
-                              DO I = 1, N
-                                 C(1,I) = ALPHA * DDOT(N-I,
-     $                              B(I+1,1), 1, A(I,I+1), LDA) +
-     $                              C(1,I)
-                              END DO
-                              CALL DAXPY(N, ALPHA, B, INCB, C, LDC)
-                           ELSE
-                              DO I = 1, N
-                                 C(1,I) = ALPHA * DDOT(N-I+1,
-     $                              B(I,1), 1, A(I,I), LDA) +
-     $                              C(1,I)
-                              END DO
-                           END IF
-                        ELSE ! Not transposing B
-                           IF (UNIT) THEN
-                              DO I = 1, N
-                                 C(1,I) = ALPHA * DDOT(N-I,
-     $                              B(1,I+1), LDB, A(I,I+1), LDA) +
-     $                              C(1,I)
-                              END DO
-                              CALL DAXPY(N, ALPHA, B, INCB, C, LDC)
-                           ELSE
-                              DO I = 1, N
-                                 C(1,I) = ALPHA * DDOT(N-I+1,
-     $                              B(1,I), LDB, A(I,I), LDA) +
-     $                              C(1,I)
-                              END DO
-                           END IF
-                        END IF
-                     ELSE ! Not transposing A
-                        IF (UNIT) THEN
-                           DO I = 1, N
-                              C(1,I) = ALPHA * DDOT(I-1, B, INCB,
-     $                           A(1,I), 1) + C(1,I)
-                           END DO
-
-                           CALL DAXPY(N, ALPHA, B, INCB, C, LDC)
-                        ELSE
-                           DO I = 1, N
-                              C(1,I) = ALPHA * DDOT(I, B, INCB,
-     $                           A(1,I), 1) + C(1,I)
-                           END DO
-                        END IF
-                     END IF
-                  ELSE ! A is lower
-                     IF (TRANST) THEN
-                        IF (UNIT) THEN
-                           DO I = 1, N
-                              C(1,I) = ALPHA * DDOT(I-1, B, INCB,
-     $                           A(I,1), LDA) + C(1,I)
-                           END DO
-
-                           CALL DAXPY(N, ALPHA, B, INCB, C, LDC)
-                        ELSE
-                           DO I = 1, N
-                              C(1,I) = ALPHA * DDOT(I, B, INCB,
-     $                           A(I,1), LDA) + C(1,I)
-                           END DO
-                        END IF
-                     ELSE ! A is not transposed
-                        IF (TRANSG) THEN
-                           IF (UNIT) THEN
-                              DO I = 1, N
-                                 C(1,I) = ALPHA * DDOT(N-I,
-     $                              B(I+1,1), 1, A(I+1,I), 1) +
-     $                              C(1,I)
-                              END DO
-                              CALL DAXPY(N, ALPHA, B, INCB, C, LDC)
-                           ELSE
-                              DO I = 1, N
-                                 C(1,I) = ALPHA * DDOT(N-I+1,
-     $                              B(I,1), 1, A(I,I), 1) +
-     $                              C(1,I)
-                              END DO
-                           END IF
-                        ELSE! B is not transposed
-                           IF (UNIT) THEN
-                              DO I = 1, N
-                                 C(1,I) = ALPHA * DDOT(N-I,
-     $                              B(1,I+1), LDB, A(I+1,I), 1) +
-     $                              C(1,I)
-                              END DO
-                              CALL DAXPY(N, ALPHA, B, INCB, C, LDC)
-                           ELSE
-                              DO I = 1, N
-                                 C(1,I) = ALPHA * DDOT(N-I+1,
-     $                              B(1,I), LDB, A(I,I), 1) +
-     $                              C(1,I)
-                              END DO
-                           END IF
-                        END IF
-                     END IF
-                  END IF
+                  CALL DTRMVOOP(UPLO, TRANSF, DIAG, N, ALPHA, A, LDA,
+     $                  B, INCB, ONE, C, LDC)
                END IF
             END IF
             RETURN
@@ -411,121 +352,41 @@
 *           set it explicitly, otherwise we overwrite it with BETA*C
 *
             IF (BETA.EQ.ZERO) THEN
-               ! This ensures we don't reference C unless we need to
                CALL DLASET('All', M, N, ZERO, ZERO, C, LDC)
             ELSE
                CALL DSCAL(M, BETA, C, 1)
             END IF
-
             IF (ALPHA.NE.ZERO) THEN
+*
+*              Determine if B is stored as a column or row
+*
                IF (TRANSG) THEN
-                  INCB = LDB ! B is a row vector
+*
+*                 This means that B is stored as a column vector
+*
+                  INCB = LDB
                ELSE
-                  INCB = 1   ! B is a column vector
+*
+*                 This means that B is stored as a row vector
+*
+                  INCB = 1
                END IF
                IF (LSIDE) THEN
-                  IF (UPPER) THEN
-                     IF (TRANST) THEN
-                        IF (UNIT) THEN
-                           DO I = 1, M
-                              C(I,1) = ALPHA * DDOT(I-1, A(1, I),
-     $                           1, B, INCB) + C(I,1)
-                           END DO
-                           CALL DAXPY(M, ALPHA, B, INCB, C, 1)
-                        ELSE
-                           DO I = 1, M
-                              C(I,1) = ALPHA * DDOT(I, A(1, I), 1,
-     $                           B, INCB) + C(I,1)
-                           END DO
-                        END IF
-                     ELSE ! A is not transposed
-                        IF (TRANSG) THEN
-                           IF (UNIT) THEN
-                              DO I = 1, M
-                                 C(I,1) = ALPHA * DDOT(M-I,
-     $                              A(I,I+1), LDA, B(1, I+1), LDB) +
-     $                              C(I,1)
-                              END DO
-
-                              CALL DAXPY(M, ALPHA, B, LDB, C, 1)
-                           ELSE
-                              DO I = 1, M
-                                 C(I,1) = ALPHA * DDOT(M-I+1,
-     $                              A(I,I), LDA, B(1,I), LDB) +
-     $                              C(I,1)
-                              END DO
-                           END IF
-                        ELSE ! B is not transposed
-                           IF (UNIT) THEN
-                              DO I = 1, M
-                                 C(I,1) = ALPHA * DDOT(M-I,
-     $                              A(I,I+1), LDA, B(I+1,1), 1) +
-     $                              C(I,1)
-                              END DO
-
-                              CALL DAXPY(M, ALPHA, B, 1, C, 1)
-                           ELSE
-                              DO I = 1, M
-                                 C(I,1) = ALPHA * DDOT(M-I+1,
-     $                              A(I,I), LDA, B(I,1), 1) +
-     $                              C(I,1)
-                              END DO
-                           END IF
-                        END IF
-                     END IF
-                  ELSE ! A is lower
-                     IF (TRANST) THEN
-                        IF (TRANSG) THEN
-                           IF (UNIT) THEN
-                              DO I = 1, M
-                                 C(I,1) = ALPHA * DDOT(M-I,
-     $                              A(I+1,I), 1, B(1,I+1), LDB) +
-     $                              C(I,1)
-                              END DO
-
-                              CALL DAXPY(M, ALPHA, B, LDB, C, 1)
-                           ELSE
-                              DO I = 1, M
-                                 C(I,1) = ALPHA * DDOT(M-I+1,
-     $                              A(I,I), 1, B(1,I), LDB) +
-     $                              C(I,1)
-                              END DO
-                           END IF
-                        ELSE ! A is not transposed
-                           IF (UNIT) THEN
-                              DO I = 1, M
-                                 C(I,1) = ALPHA * DDOT(M-I,
-     $                              A(I+1,I), 1, B(I+1,1), 1) +
-     $                              C(I,1)
-                              END DO
-
-                              CALL DAXPY(M, ALPHA, B, 1, C, 1)
-                           ELSE
-                              DO I = 1, M
-                                 C(I,1) = ALPHA * DDOT(M-I+1,
-     $                              A(I,I), 1, B(I,1), 1) +
-     $                              C(I,1)
-                              END DO
-                           END IF
-                        END IF
-                     ELSE ! A is not transposed
-                        IF (UNIT) THEN
-                           DO I = 1, M
-                              C(I,1) = ALPHA * DDOT(I-1, A(I,1),
-     $                           LDA, B, INCB) + C(I,1)
-                           END DO
-                           CALL DAXPY(M, ALPHA, B, INCB, C, 1)
-                        ELSE
-                           DO I = 1, M
-                              C(I,1) = ALPHA * DDOT(I, A(I,1), LDA,
-     $                           B, INCB) + C(I,1)
-                           END DO
-                        END IF
-                     END IF
-                  END IF
-               ELSE ! A is on the right
-                  ! Since the trailing dimension of op(A) must be 1,
-                  !  we know that A must be a scalar
+*
+*                 This means we are computing
+*                 C = \alpha*op(A)*B + C
+*
+                  CALL DTRMVOOP(UPLO, TRANSA, DIAG, M, ALPHA,
+     $                  A, LDA, B, INCB, ONE, C, 1)
+               ELSE
+*
+*                 This means we are computing
+*                 C = \alpha*B*op(A) + C
+*
+*                 Since this means A\in\R^{n\times n} = \R^{1\times 1},
+*                 A should be treated as a scalar that is either assumed to be
+*                 ONE or explicitly stored in A(1,1)
+*
                   IF (UNIT) THEN
                      CALL DAXPY(M, ALPHA, B, INCB, C, 1)
                   ELSE
@@ -595,25 +456,38 @@
 *                    C_{22} = \alpha A_{12}**T * B_{21}**T + \beta C_{22} (GEMM call)
 *                    C_{22} = \alpha A_{22}**T * B_{22}**T + C_{22} (This routine)
 *
-                     ! C_{11}
+*                    C_{11} = \alpha A_{11}**T * B_{11}**T + \beta C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                        L, L, ALPHA, A, LDA, B, LDB, BETA, C,
      $                        LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha A_{11}**T * B_{21}**T + \beta C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                        L, N-L, ALPHA, A, LDA, B(L+1, 1), LDB,
      $                        BETA, C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha A_{12}**T * B_{11}**T + \beta C_{21}
+*
                      CALL DGEMM(TRANSA, TRANSB, M-L, L, L, ALPHA,
      $                        A(1, L+1), LDA, B, LDB, BETA, C(L+1,1),
      $                        LDC)
+*
+*                    C_{21} = \alpha A_{22}**T * B_{12}**T + C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                        M-L, L, ALPHA, A(L+1,L+1), LDA, B(1,L+1),
      $                        LDB, ONE, C(L+1,1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha A_{12}**T * B_{21}**T + \beta C_{22}
+*
                      CALL DGEMM(TRANSA, TRANSB, M-L, N-L, L, ALPHA,
      $                        A(1, L+1), LDA, B(L+1,1), LDB, BETA,
      $                        C(L+1,L+1), LDC)
+*
+*                    C_{22} = \alpha A_{22}**T * B_{22}**T + C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                        M-L, N-L, ALPHA, A(L+1,L+1), LDA,
      $                        B(L+1,L+1), LDB, ONE, C(L+1,L+1), LDC)
@@ -660,23 +534,36 @@
 *                    C_{22} = \alpha A_{12}**T * B_{12} + \beta C_{22} (GEMM call)
 *                    C_{22} = \alpha A_{22}**T * B_{22} + C_{22} (This routine)
 *
-                     ! C_{11}
+*                    C_{11} = \alpha A_{11}**T * B_{11} + \beta C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha A_{11}**T * B_{12} + \beta C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A, LDA, B(1, L+1), LDB, BETA,
      $                     C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha A_{12}**T * B_{11} + \beta C_{21}
+*
                      CALL DGEMM(TRANSA, TRANSB, M-L, L, L, ALPHA,
      $                     A(1, L+1), LDA, B, LDB, BETA, C(L+1, 1), LDC)
+*
+*                    C_{21} = \alpha A_{22}**T * B_{21} + C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A(L+1, L+1), LDA, B(L+1, 1),
      $                     LDB, ONE, C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha A_{12}**T * B_{12} + \beta C_{22}
+*
                      CALL DGEMM(TRANSA, TRANSB, M-L, N-L, L,
      $                     ALPHA, A(1, L+1), LDA, B(1, L+1), LDB, BETA,
      $                     C(L+1, L+1), LDC)
+*
+*                    C_{22} = \alpha A_{22}**T * B_{22} + C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1,L+1), LDB, ONE, C(L+1,L+1), LDC)
@@ -728,23 +615,37 @@
 *                    C_{12} = \alpha A_{12} * B_{22}**T + \beta C_{12} (GEMM call)
 *                    C_{12} = \alpha A_{11} * B_{21}**T + C_{12} (This routine)
 *
-                     ! C_{11}
+*
+*                    C_{11} = \alpha A_{12} * B_{12}**T + \beta C_{11}
+*
                      CALL DGEMM(TRANSA, TRANSB, L, L, M-L, ALPHA,
      $                     A(1, L+1), LDA, B(1, L+1), LDB, BETA, C, LDC)
+*
+*                    C_{11} = \alpha A_{11} * B_{11}**T + C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, ONE, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha A_{12} * B_{22}**T + \beta C_{12}
+*
                      CALL DGEMM(TRANSA, TRANSB, L, N-L, M-L, ALPHA,
      $                     A(1, L+1), LDA, B(L+1, L+1), LDB, BETA,
      $                     C(1, L+1), LDC)
+*
+*                    C_{12} = \alpha A_{11} * B_{21}**T + C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A, LDA, B(L+1,1), LDB, ONE,
      $                     C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha A_{22} * B_{12}**T + \beta C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A(L+1, L+1), LDA, B(1, L+1),
      $                     LDB, BETA, C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha A_{22} * B_{22}**T + \beta C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, BETA, C(L+1, L+1), LDC)
@@ -791,23 +692,37 @@
 *                    C_{12} = \alpha A_{12} * B_{22} + \beta C_{12} (GEMM call)
 *                    C_{12} = \alpha A_{11} * B_{12} + C_{12} (This routine)
 *
-                     ! C_{11}
+*
+*                    C_{11} = \alpha A_{12} * B_{21} + \beta C_{11}
+*
                      CALL DGEMM(TRANSA, TRANSB, L, L, M-L, ALPHA,
      $                     A(1, L+1), LDA, B(L+1, 1), LDB, BETA, C, LDC)
+*
+*                    C_{11} = \alpha A_{11} * B_{11} + C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, ONE, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha A_{12} * B_{22} + \beta C_{12}
+*
                      CALL DGEMM(TRANSB, TRANSA, L, N-L, M-L, ALPHA,
      $                     A(1, L+1), LDA, B(L+1, L+1), LDB, BETA,
      $                     C(1, L+1), LDC)
+*
+*                    C_{12} = \alpha A_{11} * B_{12} + C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A, LDA, B(1, L+1), LDB,
      $                     ONE, C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha A_{22} * B_{21} + \beta C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A(L+1, L+1), LDA, B(L+1, 1),
      $                     LDB, BETA, C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha A_{22} * B_{22} + \beta C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, BETA, C(L+1, L+1), LDC)
@@ -864,23 +779,37 @@
 *                    C_{12} = \alpha A_{21}**T * B_{22}**T + \beta C_{12} (GEMM call)
 *                    C_{12} = \alpha A_{11}**T * B_{21}**T + C_{12} (This routine)
 *
-                     ! C_{11}
+*
+*                    C_{11} = \alpha A_{21}**T * B_{12}**T + \beta C_{11}
+*
                      CALL DGEMM(TRANSA, TRANSB, L, L, M-L, ALPHA,
      $                     A(L+1, 1), LDA, B(1, L+1), LDB, BETA, C, LDC)
+*
+*                    C_{11} = \alpha A_{11}**T * B_{11}**T + C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, ONE, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha A_{21}**T * B_{22}**T + \beta C_{12}
+*
                      CALL DGEMM(TRANSB, TRANSA, L, N-L, M-L, ALPHA,
      $                     A(L+1, 1), LDA, B(L+1, L+1), LDB, BETA,
      $                     C(1, L+1), LDC)
+*
+*                    C_{12} = \alpha A_{11}**T * B_{21}**T + C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A, LDA, B(L+1, 1), LDB, ONE,
      $                     C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha A_{22}**T * B_{12}**T + \beta C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A(L+1, L+1), LDA, B(1, L+1),
      $                     LDB, BETA, C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha A_{22}**T * B_{22}**T + \beta C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, BETA, C(L+1, L+1), LDC)
@@ -927,23 +856,37 @@
 *                    C_{12} = \alpha A_{21}**T * B_{22} + \beta C_{12} (GEMM call)
 *                    C_{12} = \alpha A_{11}**T * B_{12} + C_{12} (This routine)
 *
-                     ! C_{11}
+*
+*                    C_{11} = \alpha A_{21}**T * B_{21} + \beta C_{11}
+*
                      CALL DGEMM(TRANSA, TRANSB, L, L, M-L, ALPHA,
      $                     A(L+1, 1), LDA, B(L+1, 1), LDB, BETA, C, LDC)
+*
+*                    C_{11} = \alpha A_{11}**T * B_{11} + C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, ONE, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha A_{21}**T * B_{22} + \beta C_{12}
+*
                      CALL DGEMM(TRANSA, TRANSB, L, N-L, M-L, ALPHA,
      $                     A(L+1, 1), LDA, B(L+1, L+1), LDB, BETA,
      $                     C(1, L+1), LDC)
+*
+*                    C_{12} = \alpha A_{11}**T * B_{12} + C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A, LDA, B(1, L+1), LDB, ONE,
      $                     C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha A_{22}**T * B_{21} + \beta C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A(L+1, L+1), LDA, B(L+1, 1),
      $                     LDB, BETA, C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha A_{22}**T * B_{22} + \beta C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, BETA, C(L+1, L+1), LDC)
@@ -995,23 +938,37 @@
 *                    C_{22} = \alpha A_{21} * B_{21}**T + \beta C_{22} (GEMM call)
 *                    C_{22} = \alpha A_{22} * B_{22}**T + C_{22} (This routine)
 *
-                     ! C_{11}
+*
+*                    C_{11} = \alpha A_{11} * B_{11}**T + \beta C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha A_{11} * B_{21}**T + \beta C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A, LDA, B(L+1, 1), LDB,
      $                     BETA, C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha A_{21} * B_{11}**T + \beta C_{21}
+*
                      CALL DGEMM(TRANSA, TRANSB, M-L, L, L, ALPHA,
      $                     A(L+1, 1), LDA, B, LDB, BETA, C(L+1, 1), LDC)
+*
+*                    C_{21} = \alpha A_{22} * B_{12}**T + C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A(L+1, L+1), LDA, B(1, L+1),
      $                     LDB, ONE, C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha A_{21} * B_{21}**T + \beta C_{22}
+*
                      CALL DGEMM(TRANSA, TRANSB, M-L, N-L, L,
      $                     ALPHA, A(L+1, 1), LDA, B(L+1, 1), LDB, BETA,
      $                     C(L+1, L+1), LDC)
+*
+*                    C_{22} = \alpha A_{22} * B_{22}**T + C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, ONE, C(L+1, L+1), LDC)
@@ -1058,23 +1015,37 @@
 *                    C_{22} = \alpha A_{21} * B_{12} + \beta C_{22} (GEMM call)
 *                    C_{22} = \alpha A_{22} * B_{22} + C_{22} (This routine)
 *
-                     ! C_{11}
+*
+*                    C_{11} = \alpha A_{11} * B_{11} + \beta C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha A_{11} * B_{12} + \beta C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A, LDA, B(1, L+1), LDB,
      $                     BETA, C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha A_{21} * B_{11} + \beta C_{21}
+*
                      CALL DGEMM(TRANSA, TRANSB, M-L, L, L, ALPHA,
      $                     A(L+1, 1), LDA, B, LDB, BETA, C(L+1, 1), LDC)
+*
+*                    C_{21} = \alpha A_{22} * B_{21} + C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A(L+1, L+1), LDA, B(L+1, 1),
      $                     LDB, ONE, C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha A_{21} * B_{12} + \beta C_{22}
+*
                      CALL DGEMM(TRANSB, TRANSA, M-L, N-L, L,
      $                     ALPHA, A(L+1, 1), LDA, B(1, L+1), LDB, BETA,
      $                     C(L+1, L+1), LDC)
+*
+*                    C_{22} = \alpha A_{22} * B_{22} + C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, ONE, C(L+1, L+1), LDC)
@@ -1137,23 +1108,37 @@
 *                    C_{21} = \alpha B_{22}**T * A_{12}**T + \beta C_{21} (GEMM call)
 *                    C_{21} = \alpha B_{12}**T * A_{11}**T + C_{21} (This routine)
 *
-                     ! C_{11}
+*
+*                    C_{11} = \alpha B_{21}**T * A_{12}**T + \beta C_{11}
+*
                      CALL DGEMM(TRANSB, TRANSA, L, L, N-L, ALPHA,
      $                     B(L+1, 1), LDB, A(1, L+1), LDA, BETA, C, LDC)
+*
+*                    C_{11} = \alpha B_{11}**T * A_{11}**T + C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, ONE, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha B_{21}**T * A_{22}**T + \beta C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A(L+1, L+1), LDA, B(L+1, 1),
      $                     LDB, BETA, C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha B_{22}**T * A_{12}**T + \beta C_{21}
+*
                      CALL DGEMM(TRANSB, TRANSA, M-L, L, N-L, ALPHA,
      $                     B(L+1, L+1), LDB, A(1, L+1), LDA, BETA,
      $                     C(L+1, 1), LDC)
+*
+*                    C_{21} = \alpha B_{12}**T * A_{11}**T + C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A, LDA, B(1, L+1), LDB,
      $                     ONE, C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha B_{22}**T * A_{22}**T + \beta C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, BETA, C(L+1, L+1), LDC)
@@ -1200,23 +1185,36 @@
 *                    C_{21} = \alpha B_{22} * A_{12}**T + \beta C_{21} (GEMM call)
 *                    C_{21} = \alpha B_{21} * A_{11}**T + C_{21} (This routine)
 *
-                     ! C_{11}
+*                    C_{11} = \alpha B_{12} * A_{12}**T + \beta C_{11}
+*
                      CALL DGEMM(TRANSB, TRANSA, L, L, N-L, ALPHA,
      $                     B(1,L+1), LDB, A(1,L+1), LDA, BETA, C, LDC)
+*
+*                    C_{11} = \alpha B_{11} * A_{11}**T + C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, ONE, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha B_{12} * A_{22}**T + \beta C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A(L+1, L+1), LDA, B(1, L+1),
      $                     LDB, BETA, C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha B_{22} * A_{12}**T + \beta C_{21}
+*
                      CALL DGEMM(TRANSB, TRANSA, M-L, L, N-L, ALPHA,
      $                     B(L+1, L+1), LDB, A(1, L+1), LDA, BETA,
      $                     C(L+1, 1), LDC)
+*
+*                    C_{21} = \alpha B_{21} * A_{11}**T + C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A, LDA, B(L+1, 1), LDB,
      $                     ONE, C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha B_{22} * A_{22}**T + \beta C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, BETA, C(L+1, L+1), LDC)
@@ -1268,23 +1266,37 @@
 *                    C_{22} = \alpha B_{12}**T * A_{12} + \beta C_{22} (GEMM call)
 *                    C_{22} = \alpha B_{22}**T * A_{22} + C_{22} (This routine)
 *
-                     ! C_{11}
+*
+*                    C_{11} = \alpha B_{11}**T * A_{11} + \beta C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha B_{11}**T * A_{12} + \beta C_{12}
+*
                      CALL DGEMM(TRANSB, TRANSA, L, N-L, L, ALPHA,
      $                     B, LDB, A(1, L+1), LDA, BETA, C(1, L+1), LDC)
+*
+*                    C_{12} = \alpha B_{21}**T * A_{22} + C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A(L+1, L+1), LDA, B(L+1, 1),
      $                     LDB, ONE, C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha B_{12}**T * A_{11} + \beta C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A, LDA, B(1, L+1), LDB,
      $                     BETA, C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha B_{12}**T * A_{12} + \beta C_{22}
+*
                      CALL DGEMM(TRANSB, TRANSA, M-L, N-L, L,
      $                     ALPHA, B(1, L+1), LDB, A(1, L+1), LDA, BETA,
      $                     C(L+1, L+1), LDC)
+*
+*                    C_{22} = \alpha B_{22}**T * A_{22} + C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, ONE, C(L+1, L+1), LDC)
@@ -1331,23 +1343,37 @@
 *                    C_{22} = \alpha B_{21} * A_{12} + \beta C_{22} (GEMM call)
 *                    C_{22} = \alpha B_{22} * A_{22} + C_{22} (This routine)
 *
-                     ! C_{11}
+*
+*                    C_{11} = \alpha B_{11} * A_{11} + \beta C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha B_{11} * A_{12} + \beta C_{12}
+*
                      CALL DGEMM(TRANSB, TRANSA, L, N-L, L, ALPHA,
      $                     B, LDB, A(1, L+1), LDA, BETA, C(1, L+1), LDC)
+*
+*                    C_{12} = \alpha B_{12} * A_{22} + C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A(L+1, L+1), LDA, B(1, L+1),
      $                     LDB, ONE, C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha B_{21} * A_{11} + \beta C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A, LDA, B(L+1, 1), LDB, BETA,
      $                     C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha B_{21} * A_{12} + \beta C_{22}
+*
                      CALL DGEMM(TRANSB, TRANSA, M-L, N-L, L,
      $                     ALPHA, B(L+1, 1), LDB, A(1, L+1), LDA,
      $                     BETA, C(L+1, L+1), LDC)
+*
+*                    C_{22} = \alpha B_{22} * A_{22} + C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, ONE, C(L+1, L+1), LDC)
@@ -1404,23 +1430,37 @@
 *                    C_{22} = \alpha B_{12}**T * A_{21}**T + \beta C_{22} (GEMM call)
 *                    C_{22} = \alpha B_{22}**T * A_{22}**T + C_{22} (This routine)
 *
-                     ! C_{11}
+*
+*                    C_{11} = \alpha B_{11}**T * A_{11}**T + \beta C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha B_{11}**T * A_{21}**T + \beta C_{12}
+*
                      CALL DGEMM(TRANSB, TRANSA, L, N-L, L, ALPHA,
      $                     B, LDB, A(L+1, 1), LDA, BETA, C(1, L+1), LDC)
+*
+*                    C_{12} = \alpha B_{21}**T * A_{22}**T + C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A(L+1, L+1), LDA, B(L+1, 1),
      $                     LDB, ONE, C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha B_{12}**T * A_{11}**T + \beta C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A, LDA, B(1, L+1), LDB,
      $                     BETA, C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha B_{12}**T * A_{21}**T + \beta C_{22}
+*
                      CALL DGEMM(TRANSB, TRANSA, M-L, N-L, L, ALPHA,
      $                     B(1, L+1), LDB, A(L+1, 1), LDA, BETA,
      $                     C(L+1, L+1), LDC)
+*
+*                    C_{22} = \alpha B_{22}**T * A_{22}**T + C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, ONE, C(L+1, L+1), LDC)
@@ -1467,23 +1507,37 @@
 *                    C_{22} = \alpha B_{21} * A_{21}**T + \beta C_{22} (GEMM call)
 *                    C_{22} = \alpha B_{22} * A_{22}**T + C_{22} (This routine)
 *
-                     ! C_{11}
+*
+*                    C_{11} = \alpha B_{11} * A_{11} + \beta C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha B_{11} * A_{21}**T + \beta C_{12}
+*
                      CALL DGEMM(TRANSB, TRANSA, L, N-L, L, ALPHA,
      $                     B, LDB, A(L+1, 1), LDA, BETA, C(1, L+1), LDC)
+*
+*                    C_{12} = \alpha B_{12} * A_{22}**T + C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A(L+1, L+1), LDA, B(1, L+1),
      $                     LDB, ONE, C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha B_{21} * A_{11}**T + \beta C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A, LDA, B(L+1, 1), LDB, BETA,
      $                     C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha B_{21} * A_{21}**T + \beta C_{22}
+*
                      CALL DGEMM(TRANSB, TRANSA, M-L, N-L, L, ALPHA,
      $                     B(L+1, 1), LDB, A(L+1, 1), LDA, BETA,
      $                     C(L+1, L+1), LDC)
+*
+*                    C_{22} = \alpha B_{22} * A_{22}**T + C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, ONE, C(L+1, L+1), LDC)
@@ -1535,23 +1589,37 @@
 *                    C_{21} = \alpha B_{22}**T * A_{21} + \beta C_{21} (GEMM call)
 *                    C_{21} = \alpha B_{12}**T * A_{11} + C_{21} (This routine)
 *
-                     ! C_{11}
+*
+*                    C_{11} = \alpha B_{21}**T * A_{21} + \beta C_{11}
+*
                      CALL DGEMM(TRANSB, TRANSA, L, L, N-L, ALPHA,
      $                     B(L+1, 1), LDB, A(L+1, 1), LDA, BETA, C, LDC)
+*
+*                    C_{11} = \alpha B_{11}**T * A_{11} + C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, ONE, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha B_{21}**T * A_{22} + \beta C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A(L+1, L+1), LDA, B(L+1, 1),
      $                     LDB, BETA, C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha B_{22}**T * A_{21} + \beta C_{21}
+*
                      CALL DGEMM(TRANSB, TRANSA, M-L, L, N-L, ALPHA,
      $                     B(L+1, L+1), LDB, A(L+1, 1), LDA, BETA,
      $                     C(L+1, 1), LDC)
+*
+*                    C_{21} = \alpha B_{12}**T * A_{11} + C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A, LDA, B(1, L+1), LDB, ONE,
      $                     C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha B_{22}**T * A_{22} + \beta C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, BETA, C(L+1, L+1), LDC)
@@ -1593,28 +1661,42 @@
 *                    C_{11} and C_{21} as follows
 *
 *                    C_{11} = \alpha B_{12} * A_{21} + \beta C_{11} (GEMM call)
-*                    C_{11} = \alpha B_{11} * A_{11} + C_{11}(This routine)
+*                    C_{11} = \alpha B_{11} * A_{11} + C_{11} (This routine)
 *
 *                    C_{21} = \alpha B_{22} * A_{21} + \beta C_{21} (GEMM call)
 *                    C_{21} = \alpha B_{21} * A_{11} + C_{21} (This routine)
 *
-                     ! C_{11}
+*
+*                    C_{11} = \alpha B_{12} * A_{21} + \beta C_{11}
+*
                      CALL DGEMM(TRANSB, TRANSA, L, L, N-L, ALPHA,
      $                     B(1, L+1), LDB, A(L+1, 1), LDA, BETA, C, LDC)
+*
+*                    C_{11} = \alpha B_{11} * A_{11} + C_{11}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, L, ALPHA, A, LDA, B, LDB, ONE, C, LDC)
-                     ! C_{12}
+*
+*                    C_{12} = \alpha B_{12} * A_{22} + \beta C_{12}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     L, N-L, ALPHA, A(L+1, L+1), LDA, B(1, L+1),
      $                     LDB, BETA, C(1, L+1), LDC)
-                     ! C_{21}
+*
+*                    C_{21} = \alpha B_{22} * A_{21} + \beta C_{21}
+*
                      CALL DGEMM(TRANSB, TRANSA, M-L, L, N-L, ALPHA,
      $                     B(L+1, L+1), LDB, A(L+1, 1), LDA, BETA,
      $                     C(L+1, 1), LDC)
+*
+*                    C_{21} = \alpha B_{21} * A_{11} + C_{21}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, L, ALPHA, A, LDA, B(L+1, 1), LDB, ONE,
      $                     C(L+1, 1), LDC)
-                     ! C_{22}
+*
+*                    C_{22} = \alpha B_{22} * A_{22} + \beta C_{22}
+*
                      CALL DTRMMOOP(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $                     M-L, N-L, ALPHA, A(L+1, L+1), LDA,
      $                     B(L+1, L+1), LDB, BETA, C(L+1, L+1), LDC)

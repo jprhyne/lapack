@@ -1,20 +1,20 @@
-*> \brief \b DTRMVOOP
+*> \brief \b CTRMVOOP
 *
 *  =========== DOCUMENTATION ===========
 *
 *  Definition:
 *  ===========
 *
-*       SUBROUTINE DTRMVOOP( UPLO, TRANS, DIAG, N, ALPHA, A, LDA,
+*       SUBROUTINE CTRMVOOP( UPLO, TRANS, DIAG, N, ALPHA, A, LDA,
 *    $               X, INCX, BETA, Y, INCY )
 *
 *     .. Scalar Arguments ..
 *     INTEGER           N, LDA, INCX, INCY
 *     CHARACTER         UPLO, TRANS, DIAG
-*     DOUBLE PRECISION  ALPHA, BETA
+*     COMPLEX           ALPHA, BETA
 *     ..
 *     .. Array Arguments ..
-*     DOUBLE PRECISION  A(LDA,*),X(*),Y(*)
+*     COMPLEX           A(LDA,*),X(*),Y(*)
 *     ..
 *
 *
@@ -23,13 +23,13 @@
 *>
 *> \verbatim
 *>
-*> DTRMVOOP  performs one of the matrix-vector operations
+*> CTRMVOOP  performs one of the matrix-vector operations
 *>
-*>    y := alpha*A*x + beta*y,   or   y := alpha*A**T*x + beta*y,
+*>                y := alpha*op(A)*x + beta*y,
 *>
-*> where alpha and beta are scalars, x and y are n element vectors, and
-*> A is an n by n unit, or non-unit, upper or lower triangular matrix.
-*>
+*> where op(A) = A, A**T, or A**H, alpha and beta are scalars, x and y
+*> are n element vectors, and A is an n by n unit, or non-unit, upper
+*> or lower triangular matrix.
 *> \endverbatim
 *
 *  Arguments:
@@ -56,7 +56,7 @@
 *>
 *>              TRANS = 'T' or 't'   y := A**T*x + y.
 *>
-*>              TRANS = 'C' or 'c'   y := A**T*x + y.
+*>              TRANS = 'C' or 'c'   y := A**H*x + y.
 *> \endverbatim
 *>
 *> \param[in] DIAG
@@ -80,13 +80,13 @@
 *>
 *> \param[in] ALPHA
 *> \verbatim
-*>          ALPHA is DOUBLE PRECISION.
+*>          ALPHA is COMPLEX.
 *>           On entry, ALPHA specifies the scalar alpha.
 *> \endverbatim
 *>
 *> \param[in] A
 *> \verbatim
-*>          A is DOUBLE PRECISION array, dimension ( LDA, N )
+*>          A is COMPLEX array, dimension ( LDA, N )
 *>           Before entry with  UPLO = 'U' or 'u', the leading n by n
 *>           upper triangular part of the array A must contain the upper
 *>           triangular matrix and the strictly lower triangular part of
@@ -109,7 +109,7 @@
 *>
 *> \param[in,out] X
 *> \verbatim
-*>          X is DOUBLE PRECISION array, dimension at least
+*>          X is COMPLEX array, dimension at least
 *>           ( 1 + ( n - 1 )*abs( INCX ) ).
 *>           Before entry, the incremented array X must contain the n
 *>           element vector x.
@@ -124,14 +124,14 @@
 *>
 *> \param[in] BETA
 *> \verbatim
-*>          BETA is DOUBLE PRECISION.
+*>          BETA is COMPLEX.
 *>           On entry, BETA specifies the scalar beta. When BETA is
 *>           supplied as zero then Y need not be set on input.
 *> \endverbatim
 *>
 *> \param[in,out] Y
 *> \verbatim
-*>          Y is DOUBLE PRECISION array, dimension at least
+*>          Y is COMPLEX array, dimension at least
 *>           ( 1 + ( n - 1 )*abs( INCY ) ).
 *>           Before entry with BETA non-zero, the incremented array Y
 *>           must contain the vector y. On exit, Y is overwritten by the
@@ -167,7 +167,7 @@
 *> \endverbatim
 *>
 *  =====================================================================
-        SUBROUTINE DTRMVOOP( UPLO, TRANS, DIAG, N, ALPHA, A, LDA,
+        SUBROUTINE CTRMVOOP( UPLO, TRANS, DIAG, N, ALPHA, A, LDA,
      $               X, INCX, BETA, Y, INCY )
 *
 *  -- Reference LAPACK level2 routine --
@@ -177,17 +177,17 @@
 *     .. Scalar Arguments ..
       INTEGER           N, LDA, INCX, INCY
       CHARACTER         UPLO, TRANS, DIAG
-      DOUBLE PRECISION  ALPHA, BETA
+      COMPLEX           ALPHA, BETA
 *     ..
 *     .. Array Arguments ..
-      DOUBLE PRECISION  A(LDA,*),X(*),Y(*)
+      COMPLEX           A(LDA,*),X(*),Y(*)
 *     ..
 *
 *  =====================================================================
 *
 *     .. Parameters ..
-      DOUBLE PRECISION  ZERO
-      PARAMETER (ZERO=0.0D+0)
+      COMPLEX           ZERO
+      PARAMETER (ZERO=(0.0E+0,0.0E+0))
 *     ..
 *     .. Local Scalars ..
       INTEGER           INFO,KX,KY,IY,IX,I
@@ -198,7 +198,7 @@
       EXTERNAL          LSAME
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          XERBLA, DAXPY, DSCAL
+      EXTERNAL          XERBLA, CACXPY, CAXPY, CSCAL
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC         MAX
@@ -225,7 +225,7 @@
          INFO = 11
       END IF
       IF (INFO.NE.0) THEN
-          CALL XERBLA('DTRMVOOP',INFO)
+          CALL XERBLA('CTRMVOOP',INFO)
           RETURN
       END IF
 *
@@ -241,18 +241,18 @@
       IF (INCX.GT.0) THEN
           KX = 1
       ELSE
-         ! Did not find a good way to test this, but not needed by me. Can be
+         ! Did not find a good way to test, but not needed by me. Can be
          ! implemented later if needed
          !KX = 1 - (N-1)*INCX
-         CALL XERBLA('DTRMVOOP',9)
+         CALL XERBLA('CTRMVOOP',9)
       END IF
       IF (INCY.GT.0) THEN
           KY = 1
       ELSE
-         ! Did not find a good way to test this, but not needed by me. Can be
+         ! Did not find a good way to test, but not needed by me. Can be
          ! implemented later if needed
          !KY = 1 - (N-1)*INCY
-         CALL XERBLA('DTRMVOOP',12)
+         CALL XERBLA('CTRMVOOP',12)
       END IF
 *
 *     Start the operations. In this version the elements of A are
@@ -274,9 +274,9 @@
          END IF
       ELSE
 *
-*        A sane implementation will do nothing on BETA.EQ.(1.0D+0)
+*        A sane implementation will do nothing on BETA.EQ.DCMPLX(1.0D+0)
 *
-         CALL DSCAL(N, BETA, Y, INCY)
+         CALL CSCAL(N, BETA, Y, INCY)
       END IF
       IF (ALPHA.EQ.ZERO) RETURN
       IF (LSAME(TRANS,'N')) THEN
@@ -290,19 +290,19 @@
 *
 *                    y = (alpha*x(i))*A(1:I,I) + y
 *
-                     CALL DAXPY(I, ALPHA*X(I), A(1,I), 1, Y, INCY)
+                     CALL CAXPY(I, ALPHA*X(I), A(1,I), 1, Y, INCY)
                   END DO
                ELSE
                   DO I = 1, N
 *
 *                    y = (alpha*x(i))*A(1:I-1,I) + y
 *
-                     CALL DAXPY(I-1, ALPHA*X(I), A(1,I), 1, Y, INCY)
+                     CALL CAXPY(I-1, ALPHA*X(I), A(1,I), 1, Y, INCY)
                   END DO
 *
 *                 y = alpha*x + y
 *
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  CALL CAXPY(N, ALPHA, X, INCX, Y, INCY)
                END IF
             ELSE
                IX = KX
@@ -311,7 +311,7 @@
 *
 *                    y = (alpha*x(i))*A(1:I,I) + y
 *
-                     CALL DAXPY(I, ALPHA*X(IX), A(1,I), 1, Y, INCY)
+                     CALL CAXPY(I, ALPHA*X(IX), A(1,I), 1, Y, INCY)
                      IX = IX + INCX
                   END DO
                ELSE
@@ -319,13 +319,13 @@
 *
 *                    y = (alpha*x(i))*A(1:I-1,I) + y
 *
-                     CALL DAXPY(I-1, ALPHA*X(IX), A(1,I), 1, Y, INCY)
+                     CALL CAXPY(I-1, ALPHA*X(IX), A(1,I), 1, Y, INCY)
                      IX = IX + INCX
                   END DO
 *
 *                 y = alpha*x + y
 *
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  CALL CAXPY(N, ALPHA, X, INCX, Y, INCY)
                END IF
             END IF
          ELSE
@@ -335,7 +335,7 @@
 *
 *                    y = (alpha*x(i))*A(I:N,I) + y
 *
-                     CALL DAXPY(N-I+1, ALPHA*X(I), A(I,I), 1,
+                     CALL CAXPY(N-I+1, ALPHA*X(I), A(I,I), 1,
      $                     Y(KY + (I-1)*INCY), INCY)
                   END DO
                ELSE
@@ -343,13 +343,13 @@
 *
 *                    y = (alpha*x(i))*A(I+1:N,I) + y
 *
-                     CALL DAXPY(N-I, ALPHA*X(I), A(I+1,I), 1,
+                     CALL CAXPY(N-I, ALPHA*X(I), A(I+1,I), 1,
      $                     Y(KY + I*INCY), INCY)
                   END DO
 *
 *                 y = alpha*x + y
 *
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  CALL CAXPY(N, ALPHA, X, INCX, Y, INCY)
                END IF
             ELSE
                IX = KX
@@ -358,7 +358,7 @@
 *
 *                    y = (alpha*x(i))*A(I:N,I) + y
 *
-                     CALL DAXPY(N-I+1, ALPHA*X(IX), A(I,I), 1,
+                     CALL CAXPY(N-I+1, ALPHA*X(IX), A(I,I), 1,
      $                     Y(KY + (I-1)*INCY), INCY)
                      IX = IX + INCX
                   END DO
@@ -367,18 +367,18 @@
 *
 *                    y = (alpha*x(i))*A(I+1:N,I) + y
 *
-                     CALL DAXPY(N-I, ALPHA*X(IX), A(I+1,I), 1,
+                     CALL CAXPY(N-I, ALPHA*X(IX), A(I+1,I), 1,
      $                     Y(KY + I*INCY), INCY)
                      IX = IX + INCX
                   END DO
 *
 *                 y = alpha*x + y
 *
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  CALL CAXPY(N, ALPHA, X, INCX, Y, INCY)
                END IF
             END IF
          END IF
-      ELSE
+      ELSE IF (LSAME(TRANS,'T')) THEN
 *
 *        Form  y := alpha*A**T*x + y.
 *
@@ -389,7 +389,7 @@
 *
 *                    y = (alpha*x(i))*A(I,I:N) + y
 *
-                     CALL DAXPY(N-I+1, ALPHA*X(I), A(I,I), LDA,
+                     CALL CAXPY(N-I+1, ALPHA*X(I), A(I,I), LDA,
      $                     Y(KY + (I-1)*INCY), INCY)
                   END DO
                ELSE
@@ -397,13 +397,13 @@
 *
 *                    y = (alpha*x(i))*A(I,I+1:N) + y
 *
-                     CALL DAXPY(N-I, ALPHA*X(I), A(I,I+1), LDA,
+                     CALL CAXPY(N-I, ALPHA*X(I), A(I,I+1), LDA,
      $                     Y(KY + I*INCY), INCY)
                   END DO
 *
 *                 y = alpha*x + y
 *
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  CALL CAXPY(N, ALPHA, X, INCX, Y, INCY)
                END IF
             ELSE
                IX = KX
@@ -412,7 +412,7 @@
 *
 *                    y = (alpha*x(i))*A(I,I:N) + y
 *
-                     CALL DAXPY(N-I+1, ALPHA*X(IX), A(I,I), LDA,
+                     CALL CAXPY(N-I+1, ALPHA*X(IX), A(I,I), LDA,
      $                     Y(KY + (I-1)*INCY), INCY)
                      IX = IX + INCX
                   END DO
@@ -421,14 +421,14 @@
 *
 *                    y = (alpha*x(i))*A(I,I+1:N) + y
 *
-                     CALL DAXPY(N-I, ALPHA*X(IX), A(I,I+1), LDA,
+                     CALL CAXPY(N-I, ALPHA*X(IX), A(I,I+1), LDA,
      $                     Y(KY + I*INCY), INCY)
                      IX = IX + INCX
                   END DO
 *
 *                 y = alpha*x + y
 *
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  CALL CAXPY(N, ALPHA, X, INCX, Y, INCY)
                END IF
             END IF
          ELSE
@@ -438,7 +438,7 @@
 *
 *                    y = (alpha*x(i))*A(I,1:I) + y
 *
-                     CALL DAXPY(I, ALPHA*X(I), A(I,1), LDA,
+                     CALL CAXPY(I, ALPHA*X(I), A(I,1), LDA,
      $                     Y, INCY)
                   END DO
                ELSE
@@ -446,13 +446,13 @@
 *
 *                    y = (alpha*x(i))*A(I,1:I-1) + y
 *
-                     CALL DAXPY(I-1, ALPHA*X(I), A(I,1), LDA,
+                     CALL CAXPY(I-1, ALPHA*X(I), A(I,1), LDA,
      $                     Y, INCY)
                   END DO
 *
 *                 y = alpha*x + y
 *
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  CALL CAXPY(N, ALPHA, X, INCX, Y, INCY)
                END IF
             ELSE
                IX = KX
@@ -461,7 +461,7 @@
 *
 *                    y = (alpha*x(i))*A(I,1:I) + y
 *
-                     CALL DAXPY(I, ALPHA*X(IX), A(I,1), LDA,
+                     CALL CAXPY(I, ALPHA*X(IX), A(I,1), LDA,
      $                     Y, INCY)
                      IX = IX + INCX
                   END DO
@@ -470,14 +470,117 @@
 *
 *                    y = (alpha*x(i))*A(I,1:I-1) + y
 *
-                     CALL DAXPY(I-1, ALPHA*X(IX), A(I,1), LDA,
+                     CALL CAXPY(I-1, ALPHA*X(IX), A(I,1), LDA,
      $                     Y, INCY)
                      IX = IX + INCX
                   END DO
 *
-*                    y = alpha*x + y
+*                 y = alpha*x + y
 *
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  CALL CAXPY(N, ALPHA, X, INCX, Y, INCY)
+               END IF
+            END IF
+         END IF
+      ELSE !IF (LSAME(TRANS,'C')) THEN
+*
+*        Form  y := alpha*A**H*x + y.
+*
+         IF (UPPER) THEN
+            IF (INCX.EQ.1) THEN
+               IF (NOUNIT) THEN
+                  DO I = 1, N
+*
+*                    y = (alpha*x(i))*DCONJG(A(I,I:N)) + y
+*
+                     CALL CACXPY(N-I+1, ALPHA*X(I), A(I,I), LDA,
+     $                     Y(KY + (I-1)*INCY), INCY)
+                  END DO
+               ELSE
+                  DO I = 1, N
+*
+*                    y = (alpha*x(i))*DCONJG(A(I,I+1:N)) + y
+*
+                     CALL CACXPY(N-I, ALPHA*X(I), A(I,I+1), LDA,
+     $                     Y(KY + I*INCY), INCY)
+                  END DO
+*
+*                 y = alpha*x + y
+*
+                  CALL CAXPY(N, ALPHA, X, INCX, Y, INCY)
+               END IF
+            ELSE
+               IX = KX
+               IF (NOUNIT) THEN
+                  DO I = 1, N
+*
+*                    y = (alpha*x(i))*DCONJG(A(I,I:N)) + y
+*
+                     CALL CACXPY(N-I+1, ALPHA*X(IX), A(I,I), LDA,
+     $                     Y(KY + (I-1)*INCY), INCY)
+                     IX = IX + INCX
+                  END DO
+               ELSE
+                  DO I = 1, N
+*
+*                    y = (alpha*x(i))*DCONJG(A(I,I+1:N)) + y
+*
+                     CALL CACXPY(N-I, ALPHA*X(IX), A(I,I+1), LDA,
+     $                     Y(KY + I*INCY), INCY)
+                     IX = IX + INCX
+                  END DO
+*
+*                 y = alpha*x + y
+*
+                  CALL CAXPY(N, ALPHA, X, INCX, Y, INCY)
+               END IF
+            END IF
+         ELSE
+            IF (INCX.EQ.1) THEN
+               IF (NOUNIT) THEN
+                  DO I = 1, N
+*
+*                    y = (alpha*x(i))*DCONJG(A(I,1:I)) + y
+*
+                     CALL CACXPY(I, ALPHA*X(I), A(I,1), LDA,
+     $                     Y, INCY)
+                  END DO
+               ELSE
+                  DO I = 1, N
+*
+*                    y = (alpha*x(i))*DCONJG(A(I,1:I-1)) + y
+*
+                     CALL CACXPY(I-1, ALPHA*X(I), A(I,1), LDA,
+     $                     Y, INCY)
+                  END DO
+*
+*                 y = alpha*x + y
+*
+                  CALL CAXPY(N, ALPHA, X, INCX, Y, INCY)
+               END IF
+            ELSE
+               IX = KX
+               IF (NOUNIT) THEN
+                  DO I = 1, N
+*
+*                    y = (alpha*x(i))*DCONJG(A(I,1:I)) + y
+*
+                     CALL CACXPY(I, ALPHA*X(IX), A(I,1), LDA,
+     $                     Y, INCY)
+                     IX = IX + INCX
+                  END DO
+               ELSE
+                  DO I = 1, N
+*
+*                    y = (alpha*x(i))*DCONJG(A(I,1:I-1)) + y
+*
+                     CALL CACXPY(I-1, ALPHA*X(IX), A(I,1), LDA,
+     $                     Y, INCY)
+                     IX = IX + INCX
+                  END DO
+*
+*                 y = alpha*x + y
+*
+                  CALL CAXPY(N, ALPHA, X, INCX, Y, INCY)
                END IF
             END IF
          END IF

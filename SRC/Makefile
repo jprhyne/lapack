@@ -148,7 +148,7 @@ SLASRC = \
    sorgbr.o sorghr.o sorgl2.o sorglq.o sorgql.o sorgqr.o sorgr2.o \
    sorgrq.o sorgtr.o sorgtsqr.o sorgtsqr_row.o sorm2l.o sorm2r.o sorm22.o \
    sorgkr.o sorgrk.o sorgkl.o sorglk.o \
-   slumm.o strtrm.o strmmoop.o \
+   slumm.o strtrm.o strmmoop.o strmmoop_lvl2.o strmvoop.o \
    sormbr.o sormhr.o sorml2.o sormlq.o sormql.o sormqr.o sormr2.o \
    sormr3.o sormrq.o sormrz.o sormtr.o spbcon.o spbequ.o spbrfs.o \
    spbstf.o spbsv.o  spbsvx.o \
@@ -283,7 +283,7 @@ CLASRC = \
    ctrsyl.o ctrsyl3.o ctrti2.o ctrtri.o ctrtrs.o ctzrzf.o cung2l.o cung2r.o \
    cungbr.o cunghr.o cungl2.o cunglq.o cungql.o cungqr.o cungr2.o \
    cungkr.o cungrk.o cungkl.o cunglk.o \
-   clumm.o ctrtrm.o ctrmmoop.o cacxpy.o \
+   clumm.o ctrtrm.o ctrmmoop.o ctrmvoop.o cacxpy.o \
    cungrq.o cungtr.o cungtsqr.o cungtsqr_row.o cunm2l.o cunm2r.o cunmbr.o cunmhr.o cunml2.o cunm22.o \
    cunmlq.o cunmql.o cunmqr.o cunmr2.o cunmr3.o cunmrq.o cunmrz.o \
    cunmtr.o cupgtr.o cupmtr.o icmax1.o scsum1.o cstemr.o \
@@ -354,7 +354,7 @@ DLASRC = \
    dlatbs.o dlatdf.o dlatps.o dlatrd.o dlatrs.o dlatrs3.o dlatrz.o dlauu2.o \
    dlauum.o dopgtr.o dopmtr.o dorg2l.o dorg2r.o \
    dorgkr.o dorgrk.o dorgkl.o dorglk.o \
-   dlumm.o dtrtrm.o dtrmmoop.o dtrmvoop.o \
+   dlumm.o dtrtrm.o dtrmmoop.o dtrmmoop_lvl2.o dtrmvoop.o \
    dorgbr.o dorghr.o dorgl2.o dorglq.o dorgql.o dorgqr.o dorgr2.o \
    dorgrq.o dorgtr.o dorgtsqr.o dorgtsqr_row.o dorm2l.o dorm2r.o dorm22.o \
    dormbr.o dormhr.o dorml2.o dormlq.o dormql.o dormqr.o dormr2.o \
@@ -494,7 +494,7 @@ ZLASRC = \
    zung2r.o zungbr.o zunghr.o zungl2.o zunglq.o zungql.o zungqr.o zungr2.o \
    zungrq.o zungtr.o zungtsqr.o zungtsqr_row.o zunm2l.o zunm2r.o zunmbr.o zunmhr.o zunml2.o zunm22.o \
    zungkr.o zungrk.o zungkl.o zunglk.o \
-   zlumm.o ztrtrm.o ztrmmoop.o zacxpy.o \
+   zlumm.o ztrtrm.o ztrmmoop.o ztrmvoop.o zacxpy.o \
    zunmlq.o zunmql.o zunmqr.o zunmr2.o zunmr3.o zunmrq.o zunmrz.o \
    zunmtr.o zupgtr.o \
    zupmtr.o izmax1.o dzsum1.o zstemr.o \

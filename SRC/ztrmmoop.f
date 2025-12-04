@@ -215,7 +215,7 @@
       EXTERNAL          LSAME, ZDOTC, ZDOTU
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          ZGEMM, ZAXPY, ZACXPY, 
+      EXTERNAL          ZGEMM, ZAXPY, ZACXPY,
      $                  ZSCAL, ZLASET
 *     ..
 *     .. Intrinsic Functions ..
@@ -902,7 +902,7 @@
             END IF
             IF (LSIDE) THEN
 *
-*              This means we are computing 
+*              This means we are computing
 *              C = \alpha op(A) * op(B) + \beta C
 *
                IF (UPPER) THEN
@@ -1100,8 +1100,8 @@
 *                          A is assumed unit triangular
 *
                            DO I=1,M-1
-                              C(I,1) = ALPHA*CONJG(ZDOTU(M-I, 
-     $                           B(1,I+1), INCB, A(I+1,I), 1)) 
+                              C(I,1) = ALPHA*CONJG(ZDOTU(M-I,
+     $                           B(1,I+1), INCB, A(I+1,I), 1))
      &                           + C(I,1)
                            END DO
                            CALL ZACXPY(M, ALPHA, B, INCB, C, 1)
@@ -1111,7 +1111,7 @@
 *
                            DO I=1,M
                               C(I,1) = ALPHA*CONJG(ZDOTU(M-I+1,
-     $                           B(1,I), INCB, A(I,I), 1)) 
+     $                           B(1,I), INCB, A(I,I), 1))
      &                           + C(I,1)
                            END DO
                         END IF
@@ -1251,7 +1251,7 @@
      $                           A(I,1), LDA) + C(I,1)
                            END DO
                            CALL ZACXPY(M, ALPHA, B, INCB, C, 1)
-                        ELSE 
+                        ELSE
 *
 *                          A is not assumed unit triangular
 *
@@ -1273,7 +1273,7 @@
      $                           A(I,1), LDA) + C(I,1)
                            END DO
                            CALL ZAXPY(M, ALPHA, B, INCB, C, 1)
-                        ELSE 
+                        ELSE
 *
 *                          A is not assumed unit triangular
 *
@@ -1287,7 +1287,7 @@
                END IF
             ELSE
 *
-*              This means we are computing 
+*              This means we are computing
 *              C = \alpha op(B) * op(A) + \beta C
 *              Note: This means A is a scalar
 *
