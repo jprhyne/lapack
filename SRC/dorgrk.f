@@ -8,10 +8,11 @@
 *  Definition:
 *  ===========
 *
-*     SUBROUTINE DORGRK(M, N, Q, LDQ)
+*     SUBROUTINE DORGRK(APPLYT, M, N, Q, LDQ)
 *
 *        .. Scalar Arguments ..
 *        INTEGER           M, N, LDQ
+*        CHARACTER         APPLYT
 *        ..
 *        .. Array Arguments ..
 *        DOUBLE PRECISION  Q(LDQ,*)
@@ -35,6 +36,14 @@
 *  Arguments:
 *  ==========
 *
+*> \param[in] APPLYT
+*> \verbatim
+*>          APPLYT is CHARACTER*1
+*>          Specifies how we are going to apply T as follows:
+*>          = 'M': When applying, we will be multiplying.
+*>          = 'S': When applying, we will be solving a system.
+*> \endverbatim
+*>
 *> \param[in] M
 *> \verbatim
 *>          M is INTEGER
@@ -85,7 +94,7 @@
 *>
 *  =====================================================================
 
-      SUBROUTINE DORGRK(M, N, Q, LDQ)
+      SUBROUTINE DORGRK(APPLYT, M, N, Q, LDQ)
 *
 *  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
@@ -93,6 +102,7 @@
 *
 *     .. Scalar Arguments ..
       INTEGER           M, N, LDQ
+      CHARACTER         APPLYT
 *     ..
 *     .. Array Arguments ..
       DOUBLE PRECISION  Q(LDQ,*)
@@ -105,15 +115,22 @@
       PARAMETER(NEG_ONE=-1.0D+0, ONE=1.0D+0)
 *     ..
 *     .. Local Scalars ..
-      INTEGER           I, J
+      INTEGER           I, J, INFO
+      LOGICAL           SOLVET
 *     ..
 *     .. External Subroutines ..
       EXTERNAL          DTRMM, DTRTRM, DLUMM
+*     ..
+*     .. External Functions ..
+      LOGICAL           LSAME
+      EXTERNAL          LSAME
 *     ..
 *     .. Intrinsic Functions..
       INTRINSIC         MIN
 *     ..
 *     .. Executable Statements ..
+*
+      SOLVET = LSAME(APPLYT,'S')
 *
 *     Break Q apart as follows
 *
@@ -135,10 +152,15 @@
 *     V_1 \in \R^{m\times m}   assumed unit lower triangular
 *     V_2 \in \R^{m\times n-m}
 *
-*     Compute T = V_1'*T
+*     Compute T = V_1'*T or solve X*T = V_1'
 *
-      CALL DTRTRM('Left', 'Upper', 'Transpose', 'Non-Unit', 'Unit',
-     $         M, ONE, Q(1,N-M+1), LDQ, Q(1,N-M+1), LDQ)
+      IF (SOLVET) THEN
+         CALL DTRTRMS('Right', 'Upper', 'Transpose', 'Non-unit',
+     $            'Unit', M, Q(1, N-M+1), LDQ, Q(1, N-M+1), LDQ)
+      ELSE
+         CALL DTRTRM('Right', 'Upper', 'Transpose', 'Non-Unit',
+     $            'Unit', M, ONE, Q(1,N-M+1), LDQ, Q(1,N-M+1), LDQ)
+      END IF
 *
 *     Compute Q = -TV. This means that we need to break apart
 *     Our computation in two parts

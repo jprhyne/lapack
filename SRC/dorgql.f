@@ -229,13 +229,14 @@
 *
 *        Apply H to A(1:m-k+i+ib-1,1:n-k+i-1) from the left
 *
-         CALL DLARFB0C2('Identity', 'B', 'Left', 'No Transpose',
-     $         'Backward', 'Columnwise', M-K+I+IB-1, N-K+I-1, IB,
-     $         A(1, N-K+I), LDA, A( M-K+I, N-K+I ), LDA, A, LDA)
+         CALL DLARFB0C2('Identity', 'Multiply', 'Left',
+     $      'No Transpose', 'Backward', 'Columnwise', M-K+I+IB-1,
+     $      N-K+I-1, IB, A(1, N-K+I), LDA, A( M-K+I, N-K+I ), LDA,
+     $      A, LDA)
 *
 *        Apply H to rows 1:m-k+i+ib-1 of current block
 *
-         CALL DORGKL( M-K+I+IB-1, IB, A( 1, N-K+I ), LDA)
+         CALL DORGKL( 'M', M-K+I+IB-1, IB, A( 1, N-K+I ), LDA)
 
 *        Use blocked code on the remaining blocks if there are any.
 *
@@ -254,13 +255,14 @@
 *
 *           Apply H to A(1:m-k+i+ib-1,1:n-k+i-1) from the left
 *
-            CALL DLARFB0C2('General', 'B', 'Left', 'No Transpose',
-     $            'Backward', 'Columnwise', M-K+I+IB-1, N-K+I-1, IB,
-     $            A(1, N-K+I), LDA, A( M-K+I, N-K+I ), LDA, A, LDA)
+            CALL DLARFB0C2('General', 'Multiply', 'Left',
+     $         'No Transpose', 'Backward', 'Columnwise', M-K+I+IB-1,
+     $         N-K+I-1, IB, A(1, N-K+I), LDA, A( M-K+I, N-K+I ), LDA,
+     $         A, LDA)
 *
 *           Apply H to rows 1:m-k+i+ib-1 of current block
 *
-            CALL DORGKL( M-K+I+IB-1, IB, A( 1, N-K+I ), LDA)
+            CALL DORGKL( 'M', M-K+I+IB-1, IB, A( 1, N-K+I ), LDA)
          END DO
       END IF
 *

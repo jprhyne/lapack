@@ -228,13 +228,14 @@
 *
 *        Apply H to A(1:m-k+i+ib-1,1:n-k+i-1) from the left
 *
-         CALL SLARFB0C2(.TRUE., 'Left', 'No Transpose', 'Backward', 
-     $         'Columnwise', M-K+I+IB-1, N-K+I-1, IB, A(1, N-K+I), 
-     $         LDA, A( M-K+I, N-K+I ), LDA, A, LDA)
+         CALL SLARFB0C2('Identity', 'Multiply', 'Left',
+     $         'No Transpose', 'Backward', 'Columnwise',
+     $         M-K+I+IB-1, N-K+I-1, IB, A(1, N-K+I), LDA,
+     $         A( M-K+I, N-K+I ), LDA, A, LDA)
 *
 *        Apply H to rows 1:m-k+i+ib-1 of current block
 *
-         CALL SORGKL( M-K+I+IB-1, IB, A( 1, N-K+I ), LDA)
+         CALL SORGKL('M', M-K+I+IB-1, IB, A( 1, N-K+I ), LDA)
 
 *        Use blocked code on the remaining blocks if there are any.
 *
@@ -248,18 +249,19 @@
 *           H = H(i+ib-1) . . . H(i+1) H(i)
 *
             CALL SLARFT( 'Backward', 'Columnwise', M-K+I+IB-1, IB,
-     $                  A( 1, N-K+I ), LDA, TAU( I ), 
+     $                  A( 1, N-K+I ), LDA, TAU( I ),
      $                  A( M-K+I, N-K+I ), LDA )
 *
 *           Apply H to A(1:m-k+i+ib-1,1:n-k+i-1) from the left
 *
-            CALL SLARFB0C2(.FALSE., 'Left', 'No Transpose',
-     $            'Backward', 'Columnwise', M-K+I+IB-1, N-K+I-1, IB, 
-     $            A(1, N-K+I), LDA, A( M-K+I, N-K+I ), LDA, A, LDA)
+            CALL SLARFB0C2('General', 'Multiply', 'Left',
+     $            'No Transpose', 'Backward', 'Columnwise',
+     $            M-K+I+IB-1, N-K+I-1, IB, A(1, N-K+I), LDA,
+     $            A( M-K+I, N-K+I ), LDA, A, LDA)
 *
 *           Apply H to rows 1:m-k+i+ib-1 of current block
 *
-            CALL SORGKL( M-K+I+IB-1, IB, A( 1, N-K+I ), LDA)
+            CALL SORGKL('M', M-K+I+IB-1, IB, A( 1, N-K+I ), LDA)
          END DO
       END IF
 *

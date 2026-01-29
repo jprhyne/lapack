@@ -135,7 +135,7 @@
 *     ..
 *
 *  =====================================================================
-*     
+*
 *     .. Local Scalars ..
       LOGICAL            LQUERY
       INTEGER            I, IB, IINFO, IWS, KK, LWKOPT, NB, NBMIN,
@@ -226,11 +226,12 @@
      $                  A( M-K+I, N-K+I ), LDA)
 *
 *        Apply H to A(1:m-k+i+ib-1,1:n-k+i-1) from the left
-*        Exploit the fact that we are applying to an identity 
+*        Exploit the fact that we are applying to an identity
 *
-         CALL ZLARFB0C2(.TRUE., 'Left', 'No Transpose', 'Backward', 
-     $         'Columnwise', M-K+I+IB-1, N-K+I-1, IB, A(1, N-K+I), 
-     $         LDA, A( M-K+I, N-K+I ), LDA, A, LDA)
+         CALL ZLARFB0C2('Identity', 'Multiply', 'Left',
+     $         'No Transpose', 'Backward', 'Columnwise', M-K+I+IB-1,
+     $         N-K+I-1, IB, A(1, N-K+I), LDA, A( M-K+I, N-K+I ), LDA,
+     $         A, LDA)
 *
 *        Apply H to rows 1:m-k+i+ib-1 of current block
 *
@@ -248,14 +249,15 @@
 *           H = H(i+ib-1) . . . H(i+1) H(i)
 *
             CALL ZLARFT( 'Backward', 'Columnwise', M-K+I+IB-1, IB,
-     $                  A( 1, N-K+I ), LDA, TAU( I ), 
+     $                  A( 1, N-K+I ), LDA, TAU( I ),
      $                  A( M-K+I, N-K+I ), LDA )
 *
 *           Apply H to A(1:m-k+i+ib-1,1:n-k+i-1) from the left
 *
-            CALL ZLARFB0C2(.FALSE., 'Left', 'No Transpose',
-     $            'Backward', 'Columnwise', M-K+I+IB-1, N-K+I-1, IB, 
-     $            A(1, N-K+I), LDA, A( M-K+I, N-K+I ), LDA, A, LDA)
+            CALL ZLARFB0C2('General', 'Multiply', 'Left',
+     $            'No Transpose', 'Backward', 'Columnwise', M-K+I+IB-1,
+     $            N-K+I-1, IB, A(1, N-K+I), LDA, A( M-K+I, N-K+I ), LDA,
+     $            A, LDA)
 *
 *           Apply H to rows 1:m-k+i+ib-1 of current block
 *

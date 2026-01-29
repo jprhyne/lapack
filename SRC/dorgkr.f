@@ -8,7 +8,7 @@
 *  Definition:
 *  ===========
 *
-*     SUBROUTINE DORGKR(M, N, Q, LDQ)
+*     SUBROUTINE DORGKR(APPLYT, M, N, Q, LDQ)
 *
 *        .. Scalar Arguments ..
 *        INTEGER           M, N, LDQ
@@ -35,6 +35,14 @@
 *  Arguments:
 *  ==========
 *
+*> \param[in] APPLYT
+*> \verbatim
+*>          APPLYT is CHARACTER*1
+*>          Specifies how we are going to apply T as follows:
+*>          = 'M': When applying, we will be multiplying.
+*>          = 'S': When applying, we will be solving a system.
+*> \endverbatim
+*>
 *> \param[in] M
 *> \verbatim
 *>          M is INTEGER
@@ -59,6 +67,7 @@
 *>       On exit, the m-by-n matrix Q.
 *> \endverbatim
 *
+*
 *  Authors:
 *  ========
 *
@@ -68,7 +77,7 @@
 *> \author NAG Ltd.
 *
 *  =====================================================================
-      SUBROUTINE DORGKR(M, N, Q, LDQ)
+      SUBROUTINE DORGKR(APPLYT, M, N, Q, LDQ)
 *
 *  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
@@ -76,6 +85,7 @@
 *
 *     .. Scalar Arguments ..
       INTEGER           M, N, LDQ
+      CHARACTER         APPLYT
 *     ..
 *     .. Array Arguments ..
       DOUBLE PRECISION  Q(LDQ,*)
@@ -88,15 +98,22 @@
       PARAMETER(NEG_ONE=-1.0D+0, ONE=1.0D+0)
 *     ..
 *     .. Local Scalars ..
-      INTEGER           I, J
+      INTEGER           I, J, INFO
+      LOGICAL           SOLVET
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          DTRMM, DTRTRM, DLUMM
+      EXTERNAL          DTRMM, DTRTRM, DTRTRI, DLUMM
+*     ..
+*     .. External Functions ..
+      LOGICAL           LSAME
+      EXTERNAL          LSAME
 *     ..
 *     .. Intrinsic Functions..
       INTRINSIC         MIN
 *     ..
 *     .. Executable Statements ..
+*
+      SOLVET = LSAME(APPLYT,'S')
 *
 *     Break Q apart as follows
 *
@@ -105,7 +122,7 @@
 *           | V |
 *           |---|
 *
-*     Where T is an n-by-n upper triangular matrix, and V is an
+*     Where T is a n-by-n upper triangular matrix, and V is an
 *     m-by-n assumed unit lower trapezoidal matrix
 *
 *     In turn, break apart V as follows
@@ -120,10 +137,15 @@
 *     V_1 \in \R^{n\times n}   assumed unit lower triangular
 *     V_2 \in \R^{m-n\times n}
 *
-*     Compute T = T*V_1**T
+*     Compute T = T*V_1**T or solve TX = V_1**T for X overwriting T
 *
-      CALL DTRTRM('Right', 'Upper', 'Transpose', 'Non-unit', 'Unit',
-     $            N, ONE, Q, LDQ, Q, LDQ)
+      IF (SOLVET) THEN
+         CALL DTRTRMS('Left', 'Upper', 'Transpose', 'Non-Unit',
+     $                'Unit', N, Q, LDQ, Q, LDQ)
+      ELSE
+         CALL DTRTRM('Left', 'Upper', 'Transpose', 'Non-unit',
+     $               'Unit', N, ONE, Q, LDQ, Q, LDQ)
+      END IF
 *
 *     Compute Q = -VT. This means that we need to break apart
 *     Our computation in two parts
@@ -137,7 +159,7 @@
 *
       IF (M.GT.N) THEN
          CALL DTRMM('Right', 'Upper', 'No Transpose', 'Non-unit',
-     $               M-N, N, NEG_ONE, Q, LDQ, Q(N+1,1), LDQ)
+     $              M-N, N, NEG_ONE, Q, LDQ, Q(N+1,1), LDQ)
       END IF
 *
 *     Q_1 = -V_1*T (Lower-Upper Matrix-Matrix multiplication)

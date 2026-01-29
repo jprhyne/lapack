@@ -123,7 +123,7 @@
 *
 *     Compute T = T*V_1**H
 *
-      CALL ZTRTRM('Right', 'Upper', 'Conjugate Transpose', 
+      CALL ZTRTRM('Left', 'Upper', 'Conjugate Transpose',
      $            'Non-unit', 'Unit', N, ONE, Q, LDQ, Q, LDQ)
 *
 *     Compute Q = -VT. This means that we need to break apart

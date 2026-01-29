@@ -221,13 +221,14 @@
 *
 *        Apply H to A(i+ib:m,i:n) from the right
 *
-         CALL SLARFB0C2(.TRUE., 'Right', 'No Transpose', 'Forward',
-     $         'Rowwise', M-I-IB+1, N-I+1, IB, A(I,I), LDA, A(I,I), 
-     $         LDA, A(I+IB,I), LDA)
+         CALL SLARFB0C2('Identity', 'Multiply', 'Right',
+     $         'No Transpose', 'Forward', 'Rowwise',
+     $         M-I-IB+1, N-I+1, IB, A(I,I), LDA, A(I,I), LDA,
+     $         A(I+IB,I), LDA)
 *
 *        Apply H to columns i:n of current block
 
-         CALL SORGLK( IB, N-I+1, A( I, I ), LDA)
+         CALL SORGLK('M', IB, N-I+1, A( I, I ), LDA)
 *
 *        Use blocked code
 *
@@ -242,13 +243,14 @@
 *
 *           Apply H to A(i+ib:m,i:n) from the right
 *
-            CALL SLARFB0C2(.FALSE., 'Right', 'No Transpose',
-     $            'Forward', 'Rowwise', M-I-IB+1, N-I+1, IB, A(I,I),
-     $            LDA, A(I,I), LDA, A(I+IB,I), LDA)
+            CALL SLARFB0C2('General', 'Multiply', 'Right',
+     $            'No Transpose', 'Forward', 'Rowwise',
+     $            M-I-IB+1, N-I+1, IB, A(I,I), LDA, A(I,I), LDA,
+     $            A(I+IB,I), LDA)
 *
 *           Apply H to columns i:n of current block
 *
-            CALL SORGLK( IB, N-I+1, A( I, I ), LDA)
+            CALL SORGLK('M', IB, N-I+1, A( I, I ), LDA)
          END DO
 *
 *        This checks for if K was a perfect multiple of NB
@@ -267,13 +269,14 @@
 *
 *           Apply H to A(i+ib:m,i:n) from the right
 *
-            CALL SLARFB0C2(.FALSE., 'Right', 'No Transpose',
-     $            'Forward', 'Rowwise', M-I-IB+1, N-I+1, IB, A(I,I),
-     $            LDA, A(I,I), LDA, A(I+IB,I), LDA)
+            CALL SLARFB0C2('General', 'Multiply', 'Right',
+     $            'No Transpose', 'Forward', 'Rowwise',
+     $            M-I-IB+1, N-I+1, IB, A(I,I), LDA, A(I,I), LDA,
+     $            A(I+IB,I), LDA)
 *
 *           Apply H to columns i:n of current block
 *
-            CALL SORGLK( IB, N-I+1, A( I, I ), LDA)
+            CALL SORGLK('M', IB, N-I+1, A( I, I ), LDA)
          END IF
       END IF
 *

@@ -194,7 +194,7 @@
       LOGICAL           LSAME
       INTEGER           ILAENV
       EXTERNAL          LSAME, ILAENV
-*     
+*
 *     The general scheme used is inspired by the approach inside DGEQRT3
 *     which was (at the time of writing this code):
 *     Based on the algorithm of Elmroth and Gustavson,
@@ -223,7 +223,7 @@
 *        Try to finish this component with the UT-based implementation.
 *        if this fails, then we bail to LARFT_LVL2
 *
-         CALL DLARFT_UT(DIRECT, STOREV, '1', N, K, V, LDV, TAU,
+         CALL DLARFT_UT(DIRECT, STOREV, 'M', N, K, V, LDV, TAU,
      $         T, LDT)
          RETURN
       END IF

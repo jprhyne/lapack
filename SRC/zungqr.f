@@ -198,7 +198,7 @@
       IF( NB.GE.NBMIN .AND. NB.LT.K .AND. NX.LT.K ) THEN
 *
 *        Treat the last NB block starting at KK+1 specially then use our blocking
-*        method from the block starting at KI+1 to 1 
+*        method from the block starting at KI+1 to 1
 *
          KI = K - 2 * NB
          KK = K - NB
@@ -227,11 +227,11 @@
      $                     LDA, TAU(I), A(I,I), LDA)
 *
 *        Apply H to A(i:m,i+ib:n) from the left
-*        Exploit the fact that we are applying to an identity 
+*        Exploit the fact that we are applying to an identity
 *
-         CALL ZLARFB0C2(.TRUE., 'Left', 'No Transpose', 'Forward',
-     $      'Column', M-I+1, N-(I+IB)+1, IB, A(I,I), LDA, A(I,I),
-     $      LDA, A(I,I+IB), LDA)
+         CALL ZLARFB0C2('Identity', 'Multiply', 'Left',
+     $      'No Transpose', 'Forward', 'Column', M-I+1, N-(I+IB)+1, IB,
+     $      A(I,I), LDA, A(I,I), LDA, A(I,I+IB), LDA)
 *
 *        Apply H to rows i:m of current block
 *
@@ -250,9 +250,9 @@
 *
 *           Apply H to A(i:m,i+ib:n) from the left
 *
-            CALL ZLARFB0C2(.FALSE., 'Left', 'No Transpose',
-     $         'Forward', 'Column', M-I+1, N-(I+IB)+1, IB, A(I,I),
-     $         LDA, A(I,I), LDA, A(I,I+IB), LDA)
+            CALL ZLARFB0C2('General', 'Multiply', 'Left',
+     $         'No Transpose', 'Forward', 'Column', M-I+1, N-(I+IB)+1,
+     $         IB, A(I,I), LDA, A(I,I), LDA, A(I,I+IB), LDA)
 
 *
 *           Apply H to rows i:m of current block
@@ -276,9 +276,9 @@
 *
 *           Apply H to A(i:m,i+ib:n) from the left
 *
-            CALL ZLARFB0C2(.FALSE., 'Left', 'No Transpose',
-     $         'Forward', 'Column', M-I+1, N-(I+IB)+1, IB, A(I,I),
-     $         LDA, A(I,I), LDA, A(I,I+IB), LDA)
+            CALL ZLARFB0C2('General', 'Multiply', 'Left',
+     $         'No Transpose', 'Forward', 'Column', M-I+1, N-(I+IB)+1,
+     $         IB, A(I,I), LDA, A(I,I), LDA, A(I,I+IB), LDA)
 
 *
 *           Apply H to rows i:m of current block

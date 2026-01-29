@@ -225,16 +225,16 @@
 *
       RQ = (.NOT.RQT).AND.(.NOT.COLV)
 *
-*     If you want to see comments of how this subroutine works, we 
+*     If you want to see comments of how this subroutine works, we
 *     are essentially unrolling the recursion present in DLARFT, so
 *     to see what we are doing in each step (for each switch) look at the
 *     comments in dlarft.f by replacing K with I and L with I-1
-*     
+*
 *
       IF (QR) THEN
 *
 *        Break V into 9 components
-*        
+*
 *        V = |-----------------------|
 *            |V_{1,1} 0       0      | i-1
 *            |V_{2,1} V_{2,2} 0      | 1
@@ -244,7 +244,7 @@
 *
 *        V_{1,1}, V_{2,2} and V_{3,3} are unit lower triangular
 *
-*        This is how we are going to view the matrix V at each step 
+*        This is how we are going to view the matrix V at each step
 *        i=2,\dots,k, then we grow into V_{3,3} and repeat until we
 *        reach the end. On each iteration V_{3,3} is not referenced
 *
@@ -258,7 +258,7 @@
 *            |-------------------------|
 *              i-1     1       k-i
 *
-*        T_{1,1}, T_{2,2}, and T_{3,3} are non-unit lower triangular 
+*        T_{1,1}, T_{2,2}, and T_{3,3} are non-unit lower triangular
 *
 *        Similarly as above, we will construct T_{1,2} and T_{2,2} at
 *        each iteration i = 2, \dots k, and then grow into T_{1:3,3}. On
@@ -299,7 +299,7 @@
 *
 *           T_{1,2} = T_{1,1}T_{1,2}
 *
-            CALL DTRMV('Upper', 'No Transpose', 'Non-unit', I-1, 
+            CALL DTRMV('Upper', 'No Transpose', 'Non-unit', I-1,
      $            T, LDT, T(1,I), 1)
 *
 *           T_{2,2} = \tau{i}
@@ -319,7 +319,7 @@
 *
 *        V_{1,1}, V_{2,2} and V_{3,3} are unit upper triangular
 *
-*        This is how we are going to view the matrix V at each step 
+*        This is how we are going to view the matrix V at each step
 *        i=2,\dots,k, then we grow into V_{3,3} and repeat until we
 *        reach the end. On each iteration V_{3,3} is not referenced
 *
@@ -367,7 +367,7 @@
 *
 *           T_{1,2} = T_{1,1}T_{1,2}
 *
-            CALL DTRMV('Upper', 'No Transpose', 'Non-unit', I-1, 
+            CALL DTRMV('Upper', 'No Transpose', 'Non-unit', I-1,
      $            T, LDT, T(1,I), 1)
 *
 *           T_{2,2} = \tau{i}
@@ -387,7 +387,7 @@
 *
 *        V_{1,1}, V_{2,2} and V_{3,3} are unit upper triangular
 *
-*        This is how we are going to view the matrix V at each step 
+*        This is how we are going to view the matrix V at each step
 *        i=2,\dots,k, then we grow into V_{3,3} and repeat until we
 *        reach the end. On each iteration V_{3,3} is not referenced
 *
@@ -435,14 +435,14 @@
 *
 *           T_{2,1} = T_{1,1}'T_{2,1}'
 *
-            CALL DTRMV('Lower', 'Transpose', 'Non-unit', I-1, 
+            CALL DTRMV('Lower', 'Transpose', 'Non-unit', I-1,
      $            T, LDT, T(I,1), LDT)
             T(I,I) = TAU(I)
          END DO
       ELSE IF (QL) THEN
 *
 *     Break V into 9 components
-*     
+*
 *     V = |-------------------------|
 *         | V_{1,1} V_{1,2} V_{1,3} | n-i
 *         | 0       V_{2,2} V_{2,3} | 1
@@ -452,13 +452,13 @@
 *
 *        V_{1,1}, V_{2,2} and V_{3,3} are unit upper triangular
 *
-*        This is how we are going to view the matrix V at each step 
+*        This is how we are going to view the matrix V at each step
 *        i=2,\dots,k, then we grow into V_{1,1} and repeat until we
 *        reach the end. On each iteration V_{1,1} is not referenced
 *
 *        We will construct T one column at a time from right to left
 *        after initializing T(K,K) = TAU(K)
-* 
+*
 *     T = |-------------------------|
 *         | T_{1,1} 0       0       | k-i
 *         | T_{2,1} T_{2,2} 0       | 1
@@ -466,7 +466,7 @@
 *         |-------------------------|
 *           k-i     1       i-1
 *
-*        T_{1,1}, T_{2,2}, and T_{3,3} are non-unit lower triangular 
+*        T_{1,1}, T_{2,2}, and T_{3,3} are non-unit lower triangular
 *
 *        Similarly as above, we will construct T_{2,2} and T_{3,2} at
 *        each iteration i = 2, \dots k, and then grow into T_{1:3,1}. On
@@ -504,7 +504,7 @@
 *
 *             T_{3,2} = -\tau(k-i+1)V_{1,3}'V_{1,2} + T_{3,2}
 *
-            CALL DGEMV('Transpose', N-I, I-1, -TAU(KMI), 
+            CALL DGEMV('Transpose', N-I, I-1, -TAU(KMI),
      $            V(1, KMI + 1), LDV, V(1, KMI), 1, ONE,
      $            T(KMI+1, KMI), 1)
 *
@@ -526,13 +526,13 @@
 *
 *        V_{1,1}, V_{2,2} and V_{3,3} are unit lower triangular
 *
-*        This is how we are going to view the matrix V at each step 
+*        This is how we are going to view the matrix V at each step
 *        i=2,\dots,k, then we grow into V_{1,1} and repeat until we
 *        reach the end. On each iteration V_{1,1} is not referenced
 *
 *        We will construct T one column at a time from right to left
 *        after initializing T(K,K) = TAU(K)
-*        
+*
 *     T = |-------------------------|
 *         | T_{1,1} 0       0       | k-i
 *         | T_{2,1} T_{2,2} 0       | 1
@@ -540,7 +540,7 @@
 *         |-------------------------|
 *           k-i     1       i-1
 *
-*        T_{1,1}, T_{2,2}, and T_{3,3} are non-unit lower triangular 
+*        T_{1,1}, T_{2,2}, and T_{3,3} are non-unit lower triangular
 *
 *        Similarly as above, we will construct T_{2,2} and T_{3,2} at
 *        each iteration i = 2, \dots k, and then grow into T_{1:3,1}. On
@@ -583,7 +583,7 @@
 *
 *           T_{3,2} = T_{3,3}T_{3,2}
 *
-            CALL DTRMV('Lower', 'No Transpose', 'Non-unit', I-1, 
+            CALL DTRMV('Lower', 'No Transpose', 'Non-unit', I-1,
      $            T(KMI+1, KMI+1), LDT, T(KMI+1, KMI), 1)
          END DO
       ELSE IF (RQT) THEN
@@ -599,13 +599,13 @@
 *
 *        V_{1,1}, V_{2,2} and V_{3,3} are unit lower triangular
 *
-*        This is how we are going to view the matrix V at each step 
+*        This is how we are going to view the matrix V at each step
 *        i=2,\dots,k, then we grow into V_{1,1} and repeat until we
 *        reach the end. On each iteration V_{1,1} is not referenced
 *
 *        We will construct T one column at a time from right to left
 *        after initializing T(K,K) = TAU(K)
-*        
+*
 *     T = |-------------------------|
 *         | T_{1,1} T_{1,2} T_{1,3} | k-i
 *         | 0       T_{2,2} T_{2,3} | 1
@@ -613,7 +613,7 @@
 *         |-------------------------|
 *           k-i     1       i-1
 *
-*        T_{1,1}, T_{2,2}, and T_{3,3} are non-unit lower triangular 
+*        T_{1,1}, T_{2,2}, and T_{3,3} are non-unit lower triangular
 *
 *        Similarly as above, we will construct T_{2,2} and T_{2,3} at
 *        each iteration i = 2, \dots k, and then grow into T_{1,1:3}. On
@@ -658,7 +658,7 @@
 *
 *           T_{2,3} = T_{3,3}'T_{2,3}
 *
-            CALL DTRMV('Upper', 'Transpose', 'Non-unit', I-1, 
+            CALL DTRMV('Upper', 'Transpose', 'Non-unit', I-1,
      $            T(KMI+1, KMI+1), LDT, T(KMI, KMI+1), LDT)
          END DO
       END IF

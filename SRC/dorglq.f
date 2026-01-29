@@ -223,13 +223,13 @@
 *
 *        Apply H to A(i+ib:m,i:n) from the right
 *
-         CALL DLARFB0C2('Identity', 'B', 'Right', 'No Transpose',
-     $         'Forward', 'Rowwise', M-I-IB+1, N-I+1, IB, A(I,I), LDA,
-     $         A(I,I), LDA, A(I+IB,I), LDA)
+         CALL DLARFB0C2('Identity', 'Multiply', 'Right',
+     $      'No Transpose', 'Forward', 'Rowwise', M-I-IB+1, N-I+1, IB,
+     $       A(I,I), LDA, A(I,I), LDA, A(I+IB,I), LDA)
 *
 *        Apply H to columns i:n of current block
 
-         CALL DORGLK( IB, N-I+1, A( I, I ), LDA)
+         CALL DORGLK( 'M', IB, N-I+1, A( I, I ), LDA)
 *
 *        Use blocked code
 *
@@ -244,13 +244,13 @@
 *
 *           Apply H to A(i+ib:m,i:n) from the right
 *
-            CALL DLARFB0C2('General', 'B', 'Right', 'No Transpose',
-     $            'Forward', 'Rowwise', M-I-IB+1, N-I+1, IB, A(I,I),
-     $            LDA, A(I,I), LDA, A(I+IB,I), LDA)
+            CALL DLARFB0C2('General', 'Multiply', 'Right',
+     $         'No Transpose', 'Forward', 'Rowwise', M-I-IB+1, N-I+1,
+     $         IB, A(I,I), LDA, A(I,I), LDA, A(I+IB,I), LDA)
 *
 *           Apply H to columns i:n of current block
 *
-            CALL DORGLK( IB, N-I+1, A( I, I ), LDA)
+            CALL DORGLK( 'M', IB, N-I+1, A( I, I ), LDA)
          END DO
 *
 *        This checks for if K was a perfect multiple of NB
@@ -269,13 +269,13 @@
 *
 *           Apply H to A(i+ib:m,i:n) from the right
 *
-            CALL DLARFB0C2('General', 'B', 'Right', 'No Transpose',
-     $            'Forward', 'Rowwise', M-I-IB+1, N-I+1, IB, A(I,I),
-     $            LDA, A(I,I), LDA, A(I+IB,I), LDA)
+            CALL DLARFB0C2('General', 'Multiply', 'Right',
+     $         'No Transpose', 'Forward', 'Rowwise', M-I-IB+1, N-I+1,
+     $         IB, A(I,I), LDA, A(I,I), LDA, A(I+IB,I), LDA)
 *
 *           Apply H to columns i:n of current block
 *
-            CALL DORGLK( IB, N-I+1, A( I, I ), LDA)
+            CALL DORGLK( 'M', IB, N-I+1, A( I, I ), LDA)
          END IF
       END IF
 *

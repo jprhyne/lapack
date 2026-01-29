@@ -55,9 +55,9 @@
 *>           On entry, DIAGL specifies whether or not L is unit triangular
 *>           as follows:
 *>
-*>              DIAG = 'U' or 'u'      L is assumed to be unit triangular.
+*>              DIAGL = 'U' or 'u'      L is assumed to be unit triangular.
 *>
-*>              DIAG = 'N' or 'n'      L is not assumed to be unit
+*>              DIAGL = 'N' or 'n'      L is not assumed to be unit
 *>                                  triangular.
 *> \endverbatim
 *>
@@ -67,9 +67,9 @@
 *>           On entry, DIAGU specifies whether or not U is unit triangular
 *>           as follows:
 *>
-*>              DIAG = 'U' or 'u'      U is assumed to be unit triangular.
+*>              DIAGU = 'U' or 'u'      U is assumed to be unit triangular.
 *>
-*>              DIAG = 'N' or 'n'      U is not assumed to be unit
+*>              DIAGU = 'N' or 'n'      U is not assumed to be unit
 *>                                  triangular.
 *> \endverbatim
 *>
@@ -115,7 +115,7 @@
 *> \author NAG Ltd.
 *
 *  =====================================================================
-c     Cost: 2/3 * (n^3 - n)
+c     Cost: 2/3 * (n^3 - n) + n
       RECURSIVE SUBROUTINE DLUMM(SIDEL, DIAGL, DIAGU, N, ALPHA,
      $                        A, LDA)
 *

@@ -123,7 +123,7 @@
 *
 *     Compute T = T*V_1**H
 *
-      CALL CTRTRM('Right', 'Upper', 'Conjugate Transpose', 
+      CALL CTRTRM('Left', 'Upper', 'Conjugate Transpose',
      $            'Non-unit', 'Unit', N, ONE, Q, LDQ, Q, LDQ)
 *
 *     Compute Q = -VT. This means that we need to break apart

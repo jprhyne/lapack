@@ -71,13 +71,12 @@
 *>          = 'R': rowwise
 *> \endverbatim
 *>
-*> \param[in] JOBT
+*> \param[in] APPLYT
 *> \verbatim
-*>          JOBT is CHARACTER*1
-*>          Specifies if we are computing a T compatible with larfb
-*>          or not
-*>          = '1': Compute a compatible T (requires an inverse)
-*>          = '2': Do not compute such a T (must use TRSM version of larfb
+*>          APPLYT is CHARACTER*1
+*>          Specifies how we are going to apply T as follows:
+*>          = 'M': When applying, we will be multiplying (calls trtri)
+*>          = 'S': When applying, we will be solving a system.
 *> \endverbatim
 *>
 *> \param[in] N
@@ -166,7 +165,7 @@
 *> \endverbatim
 *>
 *  =====================================================================
-      SUBROUTINE DLARFT_UT( DIRECT, STOREV, JOBT, N, K, V, LDV, TAU,
+      SUBROUTINE DLARFT_UT( DIRECT, STOREV, APPLYT, N, K, V, LDV, TAU,
      $            T, LDT )
 *
 *  -- LAPACK auxiliary routine --
@@ -180,7 +179,7 @@
 *
 *     .. Scalar Arguments
 *
-      CHARACTER         DIRECT, STOREV, JOBT
+      CHARACTER         DIRECT, STOREV, APPLYT
       INTEGER           K, LDT, LDV, N, INFO
 *     ..
 *     .. Array Arguments ..
@@ -200,7 +199,7 @@
 *
 *     .. External Subroutines ..
 *
-      EXTERNAL          DST3RK, DSYRK, DTRTRI
+      EXTERNAL          DST3RK, DSYRK, DTRTRI, DLARFT_LVL2, XERBLA
 *
 *     .. External Functions..
 *
@@ -210,7 +209,7 @@
 *     Beginning of executable statements
 *
 *     This method is only viable for non-singular V matrices with
-*     non-zero associated tau values. We know for a fact that V is 
+*     non-zero associated tau values. We know for a fact that V is
 *     always non-singular as V is unit triangular, however tau can
 *     be 0. Thus, if we detect this case, we bail to the level-2 BLAS
 *     implementation, which is known to work in these instances, which
@@ -220,9 +219,18 @@
 *     may call this subroutine as a terminating case.
 *     We could also just error out by calling XERBLA if this is desired
 *
+      INVT = LSAME(APPLYT, 'M')
       DO I = 1, K
          IF( TAU(I).EQ.ZERO ) THEN
-*           TODO: error here if jobt == 2
+            IF (.NOT.INVT) THEN
+*
+*              There are no existing routines that perform this operation, so we
+*              error out. We report jobt as the incorrect flag since APPLYT='M' is
+*              allowed for this case
+*
+               CALL XERBLA( 'DLARFT_UT', 3 )
+               RETURN
+            END IF
             CALL DLARFT_LVL2(DIRECT, STOREV, N, K, V, LDV, TAU,
      $            T, LDT)
             RETURN
@@ -240,7 +248,6 @@
       TDIRF = LSAME(DIRECT,'T')
       COLV = LSAME(STOREV,'C')
       TCOLV = LSAME(STOREV,'T')
-      INVT = LSAME(JOBT, '1')
 *
 *     QR happens when we have forward direction in column storage
 *
@@ -265,7 +272,7 @@
 *
       RQT = TDIRF.AND.(.NOT.COLV)
 *
-*     RQ happens when we have backward direction in row storage and want to 
+*     RQ happens when we have backward direction in row storage and want to
 *     compute the T that we would normally compute
 *
       RQ = (.NOT.RQT).AND.(.NOT.COLV)
@@ -278,8 +285,8 @@
 *        Break V apart into 2 components
 *
 *        V = |-----|
-*            | V_1 | k   
-*            | V_2 | n-k 
+*            | V_1 | k
+*            | V_2 | n-k
 *            |-----|
 *              k
 *
@@ -405,8 +412,8 @@
 *        Break V apart into 2 components
 *
 *        V = |-----|
-*            | V_2 | n-k   
-*            | V_1 | k 
+*            | V_2 | n-k
+*            | V_1 | k
 *            |-----|
 *              k
 *

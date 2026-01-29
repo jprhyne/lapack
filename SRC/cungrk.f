@@ -137,7 +137,7 @@
 *
 *     Compute T = V_1'*T
 *
-      CALL CTRTRM('Left', 'Upper', 'Conjugate Transpose',
+      CALL CTRTRM('Right', 'Upper', 'Conjugate Transpose',
      $         'Non-Unit', 'Unit', M, ONE, Q(1,N-M+1), LDQ, Q(1,N-M+1),
      &         LDQ)
 *

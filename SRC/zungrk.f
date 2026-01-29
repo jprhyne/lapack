@@ -137,7 +137,7 @@
 *
 *     Compute T = V_1'*T
 *
-      CALL ZTRTRM('Left', 'Upper', 'Conjugate Transpose',
+      CALL ZTRTRM('Right', 'Upper', 'Conjugate Transpose',
      $         'Non-Unit', 'Unit', M, ONE, Q(1,N-M+1), LDQ, Q(1,N-M+1),
      &         LDQ)
 *

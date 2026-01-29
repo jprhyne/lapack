@@ -192,7 +192,7 @@
       IF( NB.GE.NBMIN .AND. NB.LT.K .AND. NX.LT.K ) THEN
 *
 *        Treat the last NB block starting at KK+1 specially then use our blocking
-*        method from the block starting at KI+1 to 1 
+*        method from the block starting at KI+1 to 1
 *
          KI = K - 2 * NB
          KK = K - NB
@@ -222,9 +222,9 @@
 *
 *        Apply H to A(i+ib:m,i:n) from the right
 *
-         CALL ZLARFB0C2(.TRUE., 'Right', 'No Transpose', 'Forward',
-     $         'Rowwise', M-I-IB+1, N-I+1, IB, A(I,I), LDA, A(I,I), 
-     $         LDA, A(I+IB,I), LDA)
+         CALL ZLARFB0C2('Identity', 'Multiply', 'Right',
+     $         'No Transpose', 'Forward', 'Rowwise', M-I-IB+1, N-I+1,
+     $         IB, A(I,I), LDA, A(I,I), LDA, A(I+IB,I), LDA)
 *
 *        Apply H to columns i:n of current block
 
@@ -243,9 +243,9 @@
 *
 *           Apply H to A(i+ib:m,i:n) from the right
 *
-            CALL ZLARFB0C2(.FALSE., 'Right', 'No Transpose',
-     $            'Forward', 'Rowwise', M-I-IB+1, N-I+1, IB, A(I,I),
-     $            LDA, A(I,I), LDA, A(I+IB,I), LDA)
+            CALL ZLARFB0C2('General', 'Multiply', 'Right',
+     $            'No Transpose', 'Forward', 'Rowwise', M-I-IB+1, N-I+1,
+     $            IB, A(I,I), LDA, A(I,I), LDA, A(I+IB,I), LDA)
 *
 *           Apply H to columns i:n of current block
 *
@@ -268,9 +268,9 @@
 *
 *           Apply H to A(i+ib:m,i:n) from the right
 *
-            CALL ZLARFB0C2(.FALSE., 'Right', 'No Transpose',
-     $            'Forward', 'Rowwise', M-I-IB+1, N-I+1, IB, A(I,I),
-     $            LDA, A(I,I), LDA, A(I+IB,I), LDA)
+            CALL ZLARFB0C2('General', 'Multiply', 'Right',
+     $            'No Transpose', 'Forward', 'Rowwise', M-I-IB+1, N-I+1,
+     $            IB, A(I,I), LDA, A(I,I), LDA, A(I+IB,I), LDA)
 *
 *           Apply H to columns i:n of current block
 *

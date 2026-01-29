@@ -42,12 +42,12 @@
 *> \param[in] SIDE
 *> \verbatim
 *>          SIDE is CHARACTER*1
-*>           On entry, SIDE specifies whether op(V) multiplies T from
+*>           On entry, SIDE specifies whether T multiplies op(V) from
 *>           the left or right as follows:
 *>
-*>             SIDE = 'L' or 'l'    T = \alpha op(V) * T
+*>             SIDE = 'L' or 'l'    T = \alpha T * op(V)
 *>
-*>             SIDE = 'R' or 'r'    T = \alpha T * op(V)
+*>             SIDE = 'R' or 'r'    T = \alpha op(V) * T
 *> \endverbatim
 *>
 *> \param[in] UPLO
@@ -236,7 +236,7 @@
 *
 *     Recursive case
 *
-      TLEFT = LSAME(SIDE, 'R')
+      TLEFT = LSAME(SIDE, 'L')
       TUPPER = LSAME(UPLO, 'U')
       VTRANS = LSAME(TRANSV, 'T').OR.CONJV
 

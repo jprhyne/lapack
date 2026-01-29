@@ -1,4 +1,4 @@
-*> \brief \b ZTRMMOOP_LVL2 computes an out of place triangular times general matrix multiplication
+*> \brief \b CTRMMOOP_LVL2 computes an out of place triangular times general matrix multiplication
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -8,16 +8,16 @@
 *  Definition:
 *  ===========
 *
-*     SUBROUTINE ZTRMMOOP_LVL2(SIDE, UPLO, TRANSA, TRANSB, DIAG
+*     SUBROUTINE CTRMMOOP_LVL2(SIDE, UPLO, TRANSA, TRANSB, DIAG
 *    $         M, N, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
 *
 *        .. Scalar Arguments ..
-*        COMPLEX*16        ALPHA, BETA
+*        COMPLEX           ALPHA, BETA
 *        INTEGER           M, N, LDA, LDB, LDC
 *        CHARACTER         SIDE, UPLO, TRANSA, TRANSB, DIAG
 *        ..
 *        .. Array Arguments ..
-*        COMPLEX*16        A(LDA,*), B(LDB,*), C(LDC,*)
+*        COMPLEX           A(LDA,*), B(LDB,*), C(LDC,*)
 *        ..
 *
 *> \par Purpose:
@@ -25,7 +25,7 @@
 *>
 *> \verbatim
 *>
-*> ZTRMMOOP performs one of the matrix-matrix operations
+*> CTRMMOOP performs one of the matrix-matrix operations
 *>
 *>       C = \alpha op(A) * op(B) + \beta C
 *>                      or
@@ -114,7 +114,7 @@
 *>
 *> \param[in] ALPHA
 *> \verbatim
-*>          ALPHA is COMPLEX*16.
+*>          ALPHA is COMPLEX.
 *>           On entry, ALPHA specifies the scalar alpha. When alpha is
 *>           zero then A and B are not referenced, and A and B need not
 *>           be set before entry.
@@ -122,7 +122,7 @@
 *>
 *> \param[in] A
 *> \verbatim
-*>          A is COMPLEX*16 array, dimension ( LDA, K ) where
+*>          A is COMPLEX array, dimension ( LDA, K ) where
 *>           K is M when SIDE = 'L' and K is N when SIDE='R'
 *>           Before entry with UPLO = 'U' or 'u', the leading k-by-k
 *>           upper triangular part of the array A must contain the upper
@@ -147,7 +147,7 @@
 *>
 *> \param[in] B
 *> \verbatim
-*>           B is COMPLEX*16 array, dimension ( LDB, K ), where K is M
+*>           B is COMPLEX array, dimension ( LDB, K ), where K is M
 *>           If SIDE='R' and TRANSA='N', or SIDE='L' and TRANSA='T' and N
 *>           otherwise. On entry, the leading k-by-k submatrix must contain
 *>           B.
@@ -164,7 +164,7 @@
 *>
 *> \param[in] BETA
 *> \verbatim
-*>          BETA is COMPLEX*16.
+*>          BETA is COMPLEX.
 *>           On entry, BETA specifies the scalar beta. When beta is
 *>           zero then C is not referenced on entry, and C need not
 *>           be set before entry.
@@ -172,7 +172,7 @@
 *>
 *> \param[in,out] C
 *> \verbatim
-*>          C is COMPLEX*16 array, dimension ( LDC, N )
+*>          C is COMPLEX array, dimension ( LDC, N )
 *>           Before entry, the leading m-by-n part of the array C must
 *>           contain the matrix C, and on exit is overwritten by the
 *>           transformed matrix.
@@ -195,30 +195,30 @@
 *> \author NAG Ltd.
 *
 *  =====================================================================
-      SUBROUTINE ZTRMMOOP_LVL2(SIDE, UPLO, TRANSA, TRANSB, DIAG,
+      SUBROUTINE CTRMMOOP_LVL2(SIDE, UPLO, TRANSA, TRANSB, DIAG,
      $         M, N, ALPHA, A, LDA, B, LDB, BETA, C, LDC)
 *
 *        .. Scalar Arguments ..
-         COMPLEX*16        ALPHA, BETA
+         COMPLEX           ALPHA, BETA
          INTEGER           M, N, LDA, LDB, LDC
          CHARACTER         SIDE, UPLO, TRANSA, TRANSB, DIAG
 *        ..
 *        .. Array Arguments ..
-         COMPLEX*16        A(LDA,*), B(LDB,*), C(LDC,*)
+         COMPLEX           A(LDA,*), B(LDB,*), C(LDC,*)
 *        ..
 *
 *  =====================================================================
 *
 *        .. External Functions ..
          LOGICAL           LSAME
-         COMPLEX*16        ZDOTC,ZDOTU
-         EXTERNAL          LSAME,ZDOTC,ZDOTU
+         COMPLEX           CDOTC,CDOTU
+         EXTERNAL          LSAME,CDOTC,CDOTU
 *        ..
 *        .. External Subroutines ..
-         EXTERNAL          ZTRMVOOP
+         EXTERNAL          CTRMVOOP
 *        ..
 *        .. Intrinsic Functions ..
-         INTRINSIC         MIN, DCONJG
+         INTRINSIC         MIN, CONJG
 *        ..
 *        .. Local Scalars ..
          INTEGER           I, J
@@ -256,7 +256,7 @@
 *              Which, we compute columnwise
 *
                DO I = 1, N
-                  CALL ZTRMCVOOP(UPLO, TRANSA, DIAG, M, ALPHA,
+                  CALL CTRMCVOOP(UPLO, TRANSA, DIAG, M, ALPHA,
      $                  A, LDA, B(I,1), LDB, BETA, C(1,I), 1)
                END DO
             ELSE IF (TRANSG) THEN
@@ -270,7 +270,7 @@
 *              Which, we compute columnwise
 *
                DO I = 1, N
-                  CALL ZTRMVOOP(UPLO, TRANSA, DIAG, M, ALPHA,
+                  CALL CTRMVOOP(UPLO, TRANSA, DIAG, M, ALPHA,
      $                  A, LDA, B(I,1), LDB, BETA, C(1,I), 1)
                END DO
             ELSE
@@ -284,7 +284,7 @@
 *              Which, we compute columnwise
 *
                DO I = 1, N
-                  CALL ZTRMVOOP(UPLO, TRANSA, DIAG, M, ALPHA,
+                  CALL CTRMVOOP(UPLO, TRANSA, DIAG, M, ALPHA,
      $                  A, LDA, B(1,I), 1, BETA, C(1,I), 1)
                END DO
             END IF
@@ -307,15 +307,15 @@
                      IF (UNIT) THEN
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*DCONJG(B(J,I)) +
-     $                           ALPHA*DCONJG(ZDOTU(N-J, B(J+1,I), 1,
+                              C(I,J) = ALPHA*CONJG(B(J,I)) +
+     $                           ALPHA*CONJG(CDOTU(N-J, B(J+1,I), 1,
      $                           A(J,J+1), LDA)) + BETA*C(I,J)
                            END DO
                         END DO
                      ELSE
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*DCONJG(ZDOTU(N-J+1,
+                              C(I,J) = ALPHA*CONJG(CDOTU(N-J+1,
      $                           B(J,I), 1, A(J,J), LDA)) + BETA*C(I,J)
                            END DO
                         END DO
@@ -324,15 +324,15 @@
                      IF (UNIT) THEN
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*DCONJG(B(J,I)) +
-     $                           ALPHA*DCONJG(ZDOTU(J-1, B(1,I), 1,
+                              C(I,J) = ALPHA*CONJG(B(J,I)) +
+     $                           ALPHA*CONJG(CDOTU(J-1, B(1,I), 1,
      $                            A(J,1), LDA)) + BETA*C(I,J)
                            END DO
                         END DO
                      ELSE
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*DCONJG(ZDOTU(J,
+                              C(I,J) = ALPHA*CONJG(CDOTU(J,
      $                           B(1,I), 1, A(J,1), LDA)) + BETA*C(I,J)
                            END DO
                         END DO
@@ -344,15 +344,15 @@
                      IF (UNIT) THEN
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*DCONJG(B(J,I)) +
-     $                           ALPHA*ZDOTC(N-J, B(J+1,I), 1,
+                              C(I,J) = ALPHA*CONJG(B(J,I)) +
+     $                           ALPHA*CDOTC(N-J, B(J+1,I), 1,
      $                           A(J,J+1), LDA) + BETA*C(I,J)
                            END DO
                         END DO
                      ELSE
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*ZDOTC(N-J+1,
+                              C(I,J) = ALPHA*CDOTC(N-J+1,
      $                           B(J,I), 1, A(J,J), LDA) + BETA*C(I,J)
                            END DO
                         END DO
@@ -361,15 +361,15 @@
                      IF (UNIT) THEN
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*DCONJG(B(J,I)) +
-     $                           ALPHA*ZDOTC(J-1, B(1,I), 1,
+                              C(I,J) = ALPHA*CONJG(B(J,I)) +
+     $                           ALPHA*CDOTC(J-1, B(1,I), 1,
      $                            A(J,1), LDA) + BETA*C(I,J)
                            END DO
                         END DO
                      ELSE
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*ZDOTC(J, B(1,I), 1,
+                              C(I,J) = ALPHA*CDOTC(J, B(1,I), 1,
      $                           A(J,1), LDA) + BETA*C(I,J)
                            END DO
                         END DO
@@ -380,15 +380,15 @@
                      IF (UNIT) THEN
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*DCONJG(B(J,I)) +
-     $                           ALPHA*ZDOTC(J-1, B(1,I), 1,
+                              C(I,J) = ALPHA*CONJG(B(J,I)) +
+     $                           ALPHA*CDOTC(J-1, B(1,I), 1,
      $                           A(1,J), 1) + BETA*C(I,J)
                            END DO
                         END DO
                      ELSE
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*ZDOTC(J,
+                              C(I,J) = ALPHA*CDOTC(J,
      $                           B(1,I), 1, A(1,J), 1) + BETA*C(I,J)
                            END DO
                         END DO
@@ -397,15 +397,15 @@
                      IF (UNIT) THEN
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*DCONJG(B(J,I)) +
-     $                           ALPHA*ZDOTC(N-J, B(J+1,I), 1,
+                              C(I,J) = ALPHA*CONJG(B(J,I)) +
+     $                           ALPHA*CDOTC(N-J, B(J+1,I), 1,
      $                            A(J+1,J), 1) + BETA*C(I,J)
                            END DO
                         END DO
                      ELSE
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*ZDOTC(N-J+1,
+                              C(I,J) = ALPHA*CDOTC(N-J+1,
      $                           B(J,I), 1, A(J,J), 1) + BETA*C(I,J)
                            END DO
                         END DO
@@ -436,14 +436,14 @@
                         DO J = 1, N
                            DO I = 1, M
                               C(I,J) = ALPHA*B(J,I) +
-     $                           ALPHA*ZDOTC(N-J, A(J,J+1), LDA,
+     $                           ALPHA*CDOTC(N-J, A(J,J+1), LDA,
      $                           B(J+1,I), 1) + BETA*C(I,J)
                            END DO
                         END DO
                      ELSE
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*ZDOTC(N-J+1,
+                              C(I,J) = ALPHA*CDOTC(N-J+1,
      $                           A(J,J), LDA, B(J,I), 1) + BETA*C(I,J)
                            END DO
                         END DO
@@ -453,14 +453,14 @@
                         DO J = 1, N
                            DO I = 1, M
                               C(I,J) = ALPHA*B(J,I) +
-     $                           ALPHA*ZDOTC(J-1, A(J,1), LDA,
+     $                           ALPHA*CDOTC(J-1, A(J,1), LDA,
      $                            B(1,I), 1) + BETA*C(I,J)
                            END DO
                         END DO
                      ELSE
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*ZDOTC(J,
+                              C(I,J) = ALPHA*CDOTC(J,
      $                           A(J,1), LDA, B(1,I), 1) + BETA*C(I,J)
                            END DO
                         END DO
@@ -472,7 +472,7 @@
                      TRANSF = 'N'
                   END IF
                   DO I = 1, M
-                     CALL ZTRMVOOP(UPLO, TRANSF, DIAG, N, ALPHA,
+                     CALL CTRMVOOP(UPLO, TRANSF, DIAG, N, ALPHA,
      $                     A, LDA, B(1,I), 1, BETA, C(I,1), LDC)
                   END DO
                END IF
@@ -500,14 +500,14 @@
                         DO J = 1, N
                            DO I = 1, M
                               C(I,J) = ALPHA*B(I,J) +
-     $                           ALPHA*ZDOTC(N-J, A(J,J+1), LDA,
+     $                           ALPHA*CDOTC(N-J, A(J,J+1), LDA,
      $                           B(I,J+1), LDB) + BETA*C(I,J)
                            END DO
                         END DO
                      ELSE
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*ZDOTC(N-J+1,
+                              C(I,J) = ALPHA*CDOTC(N-J+1,
      $                           A(J,J), LDA, B(I,J), LDB) + BETA*C(I,J)
                            END DO
                         END DO
@@ -517,14 +517,14 @@
                         DO J = 1, N
                            DO I = 1, M
                               C(I,J) = ALPHA*B(I,J) +
-     $                           ALPHA*ZDOTC(J-1, A(J,1), LDA,
+     $                           ALPHA*CDOTC(J-1, A(J,1), LDA,
      $                           B(I,1), LDB) +  BETA*C(I,J)
                            END DO
                         END DO
                      ELSE
                         DO J = 1, N
                            DO I = 1, M
-                              C(I,J) = ALPHA*ZDOTC(J, A(J,1), LDA,
+                              C(I,J) = ALPHA*CDOTC(J, A(J,1), LDA,
      $                           B(I,1), LDB) + BETA*C(I,J)
                            END DO
                         END DO
@@ -536,7 +536,7 @@
                      TRANSF = 'N'
                   END IF
                   DO I = 1, M
-                     CALL ZTRMVOOP(UPLO, TRANSF, DIAG, N, ALPHA,
+                     CALL CTRMVOOP(UPLO, TRANSF, DIAG, N, ALPHA,
      $                     A, LDA, B(I,1), LDB, BETA, C(I,1), LDC)
                   END DO
                END IF

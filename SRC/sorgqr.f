@@ -220,13 +220,13 @@
 *
 *        Apply H to A(i:m,i+ib:n) from the left
 *
-         CALL SLARFB0C2(.TRUE., 'Left', 'No Transpose', 'Forward',
-     $      'Column', M-I+1, N-(I+IB)+1, IB, A(I,I), LDA, A(I,I),
-     $      LDA, A(I,I+IB), LDA)
+         CALL SLARFB0C2('Identity', 'Multiply', 'Left',
+     $      'No Transpose', 'Forward', 'Column', M-I+1, N-(I+IB)+1, IB,
+     $      A(I,I), LDA, A(I,I), LDA, A(I,I+IB), LDA)
 *
 *        Apply H to rows i:m of current block
 *
-         CALL SORGKR(M-I+1, IB, A(I,I), LDA)
+         CALL SORGKR('M', M-I+1, IB, A(I,I), LDA)
          DO I = KI + 1, 1, -NB
             IB = NB
 *
@@ -238,14 +238,14 @@
 *
 *           Apply H to A(i:m,i+ib:n) from the left
 *
-            CALL SLARFB0C2(.FALSE., 'Left', 'No Transpose',
-     $         'Forward', 'Column', M-I+1, N-(I+IB)+1, IB, A(I,I),
-     $         LDA, A(I,I), LDA, A(I,I+IB), LDA)
+            CALL SLARFB0C2('General', 'Multiply', 'Left',
+     $         'No Transpose', 'Forward', 'Column', M-I+1, N-(I+IB)+1,
+     $         IB, A(I,I), LDA, A(I,I), LDA, A(I,I+IB), LDA)
 
 *
 *           Apply H to rows i:m of current block
 *
-            CALL SORGKR(M-I+1, IB, A(I,I), LDA)
+            CALL SORGKR('M', M-I+1, IB, A(I,I), LDA)
          END DO
 *
 *        This checks for if K was a perfect multiple of NB
@@ -264,14 +264,14 @@
 *
 *           Apply H to A(i:m,i+ib:n) from the left
 *
-            CALL SLARFB0C2(.FALSE., 'Left', 'No Transpose',
-     $         'Forward', 'Column', M-I+1, N-(I+IB)+1, IB, A(I,I),
-     $         LDA, A(I,I), LDA, A(I,I+IB), LDA)
+            CALL SLARFB0C2('General', 'Multiply', 'Left',
+     $         'No Transpose', 'Forward', 'Column', M-I+1, N-(I+IB)+1,
+     $         IB, A(I,I), LDA, A(I,I), LDA, A(I,I+IB), LDA)
 
 *
 *           Apply H to rows i:m of current block
 *
-            CALL SORGKR(M-I+1, IB, A(I,I), LDA)
+            CALL SORGKR('M', M-I+1, IB, A(I,I), LDA)
          END IF
       END IF
       WORK( 1 ) = SROUNDUP_LWORK(IWS)

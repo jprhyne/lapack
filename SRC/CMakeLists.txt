@@ -118,7 +118,7 @@ set(SLASRC
    sorgbr.f sorghr.f sorgl2.f sorglq.f sorgql.f sorgqr.f sorgr2.f
    sorgrq.f sorgtr.f sorgtsqr.f sorgtsqr_row.f sorm2l.f sorm2r.f sorm22.f
    sorgkr.f sorgrk.f sorgkl.f sorglk.f
-   slumm.f strtrm.f strmmoop.f
+   slumm.f strtrm.f strtrms.f strmmoop.f
    sormbr.f sormhr.f sorml2.f sormlq.f sormql.f sormqr.f sormr2.f
    sormr3.f sormrq.f sormrz.f sormtr.f spbcon.f spbequ.f spbrfs.f
    spbstf.f spbsv.f  spbsvx.f
@@ -253,7 +253,7 @@ set(CLASRC
    ctrsyl.f ctrsyl3.f ctrti2.f ctrtri.f ctrtrs.f ctzrzf.f cung2l.f cung2r.f
    cungbr.f cunghr.f cungl2.f cunglq.f cungql.f cungqr.f cungr2.f
    cungkr.f cungrk.f cungkl.f cunglk.f
-   clumm.f ctrtrm.f ctrmmoop.f cacxpy.f
+   clumm.f ctrtrm.f ctrtrms.f ctrmmoop.f cacxpy.f
    cungrq.f cungtr.f cungtsqr.f cungtsqr_row.f cunm2l.f cunm2r.f cunmbr.f cunmhr.f cunml2.f cunm22.f
    cunmlq.f cunmql.f cunmqr.f cunmr2.f cunmr3.f cunmrq.f cunmrz.f
    cunmtr.f cupgtr.f cupmtr.f icmax1.f scsum1.f cstemr.f
@@ -324,7 +324,7 @@ set(DLASRC
    dlauum.f dopgtr.f dopmtr.f dorg2l.f dorg2r.f
    dorgbr.f dorghr.f dorgl2.f dorglq.f dorgql.f dorgqr.f dorgr2.f
    dorgkr.f dorgrk.f dorgkl.f dorglk.f
-   dlumm.f dtrtrm.f dtrmmoop.f
+   dlumm.f dtrtrm.f dtrtrms.f dtrmmoop.f
    dorgrq.f dorgtr.f dorgtsqr.f dorgtsqr_row.f dorm2l.f dorm2r.f dorm22.f
    dormbr.f dormhr.f dorml2.f dormlq.f dormql.f dormqr.f dormr2.f
    dormr3.f dormrq.f dormrz.f dormtr.f dpbcon.f dpbequ.f dpbrfs.f
@@ -461,7 +461,7 @@ set(ZLASRC
    zung2r.f zungbr.f zunghr.f zungl2.f zunglq.f zungql.f zungqr.f zungr2.f
    zungrq.f zungtr.f zungtsqr.f zungtsqr_row.f zunm2l.f zunm2r.f zunmbr.f zunmhr.f zunml2.f zunm22.f
    zungkr.f zungrk.f zungkl.f zunglk.f
-   zlumm.f ztrtrm.f ztrmmoop.f zacxpy.f
+   zlumm.f ztrtrm.f ztrtrms.f ztrmmoop.f zacxpy.f
    zunmlq.f zunmql.f zunmqr.f zunmr2.f zunmr3.f zunmrq.f zunmrz.f
    zunmtr.f zupgtr.f
    zupmtr.f izmax1.f dzsum1.f zstemr.f

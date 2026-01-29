@@ -8,10 +8,11 @@
 *  Definition:
 *  ===========
 *
-*     SUBROUTINE SORGKR(M, N, Q, LDQ)
+*     SUBROUTINE SORGKR(APPLYT, M, N, Q, LDQ)
 *
 *        .. Scalar Arguments ..
 *        INTEGER           M, N, LDQ
+*        CHARACTER         APPLYT
 *        ..
 *        .. Array Arguments ..
 *        REAL              Q(LDQ,*)
@@ -35,6 +36,14 @@
 *  Arguments:
 *  ==========
 *
+*> \param[in] APPLYT
+*> \verbatim
+*>          APPLYT is CHARACTER*1
+*>          Specifies how we are going to apply T as follows:
+*>          = 'M': When applying, we will be multiplying.
+*>          = 'S': When applying, we will be solving a system.
+*> \endverbatim
+*>
 *> \param[in] M
 *> \verbatim
 *>          M is INTEGER
@@ -68,7 +77,7 @@
 *> \author NAG Ltd.
 *
 *  =====================================================================
-      SUBROUTINE SORGKR(M, N, Q, LDQ)
+      SUBROUTINE SORGKR(APPLYT, M, N, Q, LDQ)
 *
 *  -- LAPACK computational routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
@@ -76,6 +85,7 @@
 *
 *     .. Scalar Arguments ..
       INTEGER           M, N, LDQ
+      CHARACTER         APPLYT
 *     ..
 *     .. Array Arguments ..
       REAL              Q(LDQ,*)
@@ -89,14 +99,21 @@
 *     ..
 *     .. Local Scalars ..
       INTEGER           I, J
+      LOGICAL           SOLVET
 *     ..
 *     .. External Subroutines ..
       EXTERNAL          STRMM, STRTRM, SLUMM
+*     ..
+*     .. External Functions ..
+      LOGICAL           LSAME
+      EXTERNAL          LSAME
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC         MIN
 *     ..
 *     .. Executable Statements ..
+*
+      SOLVET = LSAME(APPLYT,'S')
 *
 *     Break Q apart as follows
 *
@@ -120,10 +137,15 @@
 *     V_1 \in \R^{n\times n}   assumed unit lower triangular
 *     V_2 \in \R^{m-n\times n}
 *
-*     Compute T = T*V_1**T
+*     Compute T = T*V_1**T or solve T*X = V_1' for X overwritting T
 *
-      CALL STRTRM('Right', 'Upper', 'Transpose', 'Non-unit', 'Unit',
-     $            N, ONE, Q, LDQ, Q, LDQ)
+      IF (SOLVET) THEN
+         CALL STRTRMS('Left', 'Upper', 'Transpose', 'Non-unit',
+     $               'Unit', N, Q, LDQ, Q, LDQ)
+      ELSE
+         CALL STRTRM('Left', 'Upper', 'Transpose', 'Non-unit',
+     $               'Unit', N, ONE, Q, LDQ, Q, LDQ)
+      END IF
 *
 *     Compute Q = -VT. This means that we need to break apart
 *     Our computation in two parts

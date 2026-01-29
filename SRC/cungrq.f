@@ -231,9 +231,9 @@
 *
 *        Apply H to A(1:m-k+i-1,1:n-k+i+ib-1) from the right
 *
-         CALL CLARFB0C2(.TRUE., 'Right', 'No Transpose', 'Backward', 
-     $         'Rowwise', II-1, N-K+I+IB-1, IB, A(II,1), LDA,
-     $          A( II, N-K+I ), LDA, A, LDA)
+         CALL CLARFB0C2('Identity', 'Multiply', 'Right',
+     $         'No Transpose', 'Backward', 'Rowwise', II-1, N-K+I+IB-1,
+     $         IB, A(II,1), LDA, A( II, N-K+I ), LDA, A, LDA)
 *
 *           Apply H to columns 1:n-k+i+ib-1 of current block
 *
@@ -254,9 +254,10 @@
 *
 *           Apply H to A(1:m-k+i-1,1:n-k+i+ib-1) from the right
 *
-            CALL CLARFB0C2(.FALSE., 'Right', 'No Transpose',
-     $            'Backward', 'Rowwise', II-1, N-K+I+IB-1, IB, A(II,1),
-     $             LDA, A( II, N-K+I ), LDA, A, LDA)
+            CALL CLARFB0C2('General', 'Multiply', 'Right',
+     $            'No Transpose', 'Backward', 'Rowwise', II-1,
+     $            N-K+I+IB-1, IB, A(II,1), LDA, A( II, N-K+I ), LDA,
+     $            A, LDA)
 *
 *           Apply H to columns 1:n-k+i+ib-1 of current block
 *
