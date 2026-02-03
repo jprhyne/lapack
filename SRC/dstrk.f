@@ -34,7 +34,7 @@
 *>    C := alpha*A**T*A + beta*C,
 *>
 *> where  alpha and beta  are scalars, C is a  k by k  symmetric matrix
-*> and  A  is an  k by k  either upport or lower triangular matrix 
+*> and  A  is an  k by k  either upport or lower triangular matrix
 *> \endverbatim
 *
 *  Arguments:
@@ -197,7 +197,7 @@
       LOGICAL           UPPERA,UPPERC,TRANSL,UNITT
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          DTRMMOOP
+      EXTERNAL          DTRMVOOP
 *     ..
 *     .. External Functions ..
       LOGICAL           LSAME
@@ -233,41 +233,38 @@
 *
                IF(UNITT) THEN
                   DO I = 1, K
-                     CALL DTRMMOOP('Left', UPLOA, 'Transpose',
-     $                     'No Transpose', DIAG, I-1, 1, ALPHA, A, LDA, 
-     $                     A(1,I), LDA, BETA, C(1,I), LDC)
+                     CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, I-1,
+     $                     ALPHA, A, LDA, A(1,I), 1, BETA, C(1,I), 1)
 *
-                     C(I,I) = ALPHA * 
+                     C(I,I) = ALPHA *
      $                  (DDOT(I-1, A(1,I), 1, A(1,I), 1) + ONE)
      $                  + BETA*C(I,I)
                   END DO
                ELSE
                   DO I = 1, K
-                     CALL DTRMMOOP('Left', UPLOA, 'Transpose',
-     $                     'No Transpose', DIAG, I, 1, ALPHA, A, LDA, 
-     $                     A(1,I), LDA, BETA, C(1,I), LDC)
+                     CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, I,
+     $                     ALPHA, A, LDA, A(1,I), 1, BETA, C(1,I), 1)
                   END DO
                END IF
-            ELSE 
+            ELSE
 *
 *              This means T is lower triangular
 *
                IF(UNITT) THEN
                  DO I = 1, K
-                     CALL DTRMMOOP('Right', UPLOA, 'No Transpose',
-     $                     'Transpose', DIAG, 1, K-I, ALPHA,
-     $                     A(I+1,I+1), LDA, A(I+1,I), LDA, BETA,
+                     CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, K-I,
+     $                     ALPHA, A(I+1,I+1), LDA, A(I+1,I), 1, BETA,
      $                     C(I,I+1), LDC)
 *
-                    C(I,I) = ALPHA * 
+                    C(I,I) = ALPHA *
      $                  (DDOT(K-I, A(I+1,I), 1, A(I+1,I), 1) +
      $                  ONE) + BETA*C(I,I)
                  END DO
                ELSE
                   DO I = 1, K
-                     CALL DTRMMOOP('Right', UPLOA, 'No Transpose',
-     $                     'Transpose', DIAG, 1, K-I+1, ALPHA,
-     $                     A(I,I), LDA, A(I,I), LDA, BETA, C(I,I), LDC)
+                     CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, K-I+1,
+     $                     ALPHA, A(I,I), LDA, A(I,I), 1, BETA,
+     $                     C(I,I), LDC)
                   END DO
                END IF
             END IF
@@ -281,41 +278,38 @@
 *
                IF(UNITT) THEN
                   DO I = 1, K
-                     CALL DTRMMOOP('Right', UPLOA, 'No Transpose', 
-     $                     'Transpose', DIAG, 1, I-1, ALPHA, A, LDA, 
-     $                     A(1,I), LDA, BETA, C(I,1), LDC)
+                     CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, I-1,
+     $                     ALPHA, A, LDA, A(1,I), 1, BETA, C(I,1), LDC)
 *
-                     C(I,I) = ALPHA * 
+                     C(I,I) = ALPHA *
      $                  (DDOT(I-1, A(1,I), 1, A(1,I), 1) + ONE)
      $                  + BETA*C(I,I)
                   END DO
                ELSE
                   DO I = 1, K
-                     CALL DTRMMOOP('Right', UPLOA, 'No Transpose', 
-     $                     'Transpose', DIAG, 1, I, ALPHA, A, LDA, 
-     $                     A(1,I), LDA, BETA, C(I,1), LDC)
+                     CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, I,
+     $                     ALPHA, A, LDA, A(1,I), 1, BETA, C(I,1), LDC)
                   END DO
                END IF
-            ELSE 
+            ELSE
 *
 *              This means T is lower triangular
 *
                IF(UNITT) THEN
                   DO I = 1, K
-                     CALL DTRMMOOP('Left', UPLOA, 'Transpose', 
-     $                     'No Transpose', DIAG, K-I, 1, ALPHA,
-     $                     A(I+1,I+1), LDA, A(I+1,I), LDA, BETA,
-     $                     C(I+1,I), LDC)
+                     CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, K-I,
+     $                     ALPHA, A(I+1,I+1), LDA, A(I+1,I), 1, BETA,
+     $                     C(I+1,I), 1)
 *
-                     C(I,I) = ALPHA * 
+                     C(I,I) = ALPHA *
      $                  (DDOT(K-I, A(I+1,I), 1, A(I+1,I), 1) + ONE)
      $                  + BETA*C(I,I)
                   END DO
                ELSE
                   DO I = 1, K
-                     CALL DTRMMOOP('Left', UPLOA, 'Transpose', 
-     $                     'No Transpose', DIAG, K-I+1, 1, ALPHA,
-     $                     A(I,I), LDA, A(I,I), LDA, BETA, C(I,I), LDC)
+                     CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, K-I+1,
+     $                     ALPHA, A(I,I), LDA, A(I,I), 1, BETA,
+     $                     C(I,I), 1)
                   END DO
                END IF
             END IF
@@ -334,33 +328,31 @@
 *
                IF(UNITT) THEN
                   DO I = 1, K
-                     CALL DTRMMOOP('Right', UPLOA, 'Transpose',
-     $                     'No Transpose', DIAG, 1, K-I, ALPHA,
-     $                     A(I+1,I+1), LDA, A(I,I+1), LDA, BETA,
-     $                     C(I,I+1), LDC)
+                     CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+     $                     K-I, ALPHA, A(I+1,I+1), LDA, A(I,I+1), LDA,
+     $                     BETA, C(I,I+1), LDC)
 *
-                     C(I,I) = ALPHA * 
+                     C(I,I) = ALPHA *
      $                  (DDOT(K-I, A(I,I+1), LDA, A(I,I+1), LDA)
      $                  + ONE) + BETA*C(I,I)
                   END DO
                ELSE
                   DO I = 1, K
-                     CALL DTRMMOOP('Right', UPLOA, 'Transpose',
-     $                     'No Transpose', DIAG, 1, K-I+1, ALPHA,
-     $                     A(I,I), LDA, A(I,I), LDA, BETA, C(I,I), LDC)
+                     CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+     $                     K-I+1, ALPHA, A(I,I), LDA, A(I,I), LDA,
+     $                     BETA, C(I,I), LDC)
                   END DO
                END IF
-            ELSE 
+            ELSE
 *
 *              This means T is lower triangular
 *
                IF(UNITT) THEN
                   DO I = 1, K
-                     CALL DTRMMOOP('Left', UPLOA, 'No Transpose',
-     $                     'Transpose', DIAG, I-1, 1, ALPHA, A, LDA,
-     $                     A(I,1), LDA, BETA, C(1,I), LDC)
+                     CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG, I-1,
+     $                     ALPHA, A, LDA, A(I,1), LDA, BETA, C(1,I), 1)
 *
-                     C(I,I) = ALPHA * 
+                     C(I,I) = ALPHA *
      $                  (DDOT(I-1, A(I,1), LDA, A(I,1), LDA) + ONE)
      $                  + BETA*C(I,I)
                   END DO
@@ -382,10 +374,9 @@
 *
                IF(UNITT) THEN
                   DO I = 1, K
-                     CALL DTRMMOOP('Left', UPLOA, 'No Transpose',
-     $                     'Transpose', DIAG, K-I, 1, ALPHA,
-     $                     A(I+1,I+1), LDA, A(I,I+1), LDA, BETA,
-     $                     C(I+1,I), LDC)
+                     CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+     $                     K-I, ALPHA, A(I+1,I+1), LDA, A(I,I+1), LDA,
+     $                     BETA, C(I+1,I), 1)
 *
                      C(I,I) = ALPHA *
      $                  (DDOT(K-I, A(I,I+1), LDA, A(I,I+1), LDA)
@@ -393,30 +384,30 @@
                   END DO
                ELSE
                   DO I = 1, K
-                     CALL DTRMMOOP('Left', UPLOA, 'No Transpose',
-     $                     'Transpose', DIAG, K-I+1, 1, ALPHA,
-     $                     A(I,I), LDA, A(I,I), LDA, BETA, C(I,I), LDC)
+                     CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+     $                     K-I+1, ALPHA, A(I,I), LDA, A(I,I), LDA,
+     $                     BETA, C(I,I), 1)
                   END DO
                END IF
-            ELSE 
+            ELSE
 *
 *              This means T is lower triangular
 *
                IF(UNITT) THEN
                   DO I = 1, K
-                     CALL DTRMMOOP('Right', UPLOA, 'Transpose',
-     $                     'No Transpose', DIAG, 1, I-1, ALPHA, A, LDA,
-     $                     A(I,1), LDA, BETA, C(I,1), LDC)
+                     CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG, I-1,
+     $                     ALPHA, A, LDA, A(I,1), LDA, BETA, C(I,1),
+     $                     LDC)
 *
-                     C(I,I) = ALPHA * 
+                     C(I,I) = ALPHA *
      $                  (DDOT(I-1, A(I,1), LDA, A(I,1), LDA) + ONE)
      $                  + BETA*C(I,I)
                   END DO
                ELSE
                   DO I = 1, K
-                     CALL DTRMMOOP('Right', UPLOA, 'Transpose',
-     $                     'No Transpose', DIAG, 1, I, ALPHA, A, LDA,
-     $                     A(I,1), LDA, BETA, C(I,1), LDC)
+                     CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG, I,
+     $                     ALPHA, A, LDA, A(I,1), LDA, BETA, C(I,1),
+     $                     LDC)
                   END DO
                END IF
             END IF
