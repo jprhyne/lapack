@@ -160,7 +160,7 @@
 *
       IF (SOLVET) THEN
          CALL DTRTRMS('Left', 'Lower', 'Transpose', 'Non-Unit',
-     $                'Unit', N, Q(M-N+1,1), LDQ, Q(M-N+1,1), LDQ)
+     $                'Unit', N, ONE, Q(M-N+1,1), LDQ, Q(M-N+1,1), LDQ)
       ELSE
          CALL DTRTRM('Left', 'Lower', 'Transpose', 'Non-Unit',
      $               'Unit', N, ONE, Q(M-N+1,1), LDQ, Q(M-N+1,1), LDQ)

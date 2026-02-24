@@ -156,7 +156,7 @@
 *
       IF (SOLVET) THEN
          CALL DTRTRMS('Right', 'Upper', 'Transpose', 'Non-unit',
-     $            'Unit', M, Q(1, N-M+1), LDQ, Q(1, N-M+1), LDQ)
+     $            'Unit', M, ONE, Q(1, N-M+1), LDQ, Q(1, N-M+1), LDQ)
       ELSE
          CALL DTRTRM('Right', 'Upper', 'Transpose', 'Non-Unit',
      $            'Unit', M, ONE, Q(1,N-M+1), LDQ, Q(1,N-M+1), LDQ)
