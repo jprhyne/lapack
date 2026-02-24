@@ -186,16 +186,18 @@
 *  =====================================================================
 *
 *     .. Parameters ..
-      DOUBLE PRECISION  ZERO
-      PARAMETER (ZERO=0.0D+0)
+      DOUBLE PRECISION  ZERO, ONE
+      PARAMETER (ZERO=0.0D+0, ONE=1.0D+0)
 *     ..
 *     .. Local Scalars ..
       INTEGER           INFO,KX,KY,IY,IX,I
+      DOUBLE PRECISION  TEMP
       LOGICAL           NOUNIT,UPPER
 *     ..
 *     .. External Functions ..
+      DOUBLE PRECISION  DDOT
       LOGICAL           LSAME
-      EXTERNAL          LSAME
+      EXTERNAL          LSAME, DDOT
 *     ..
 *     .. External Subroutines ..
       EXTERNAL          XERBLA, DAXPY, DSCAL
@@ -260,121 +262,267 @@
 *
 *     First form  y := beta*y.
 *
-      IF (BETA.EQ.ZERO) THEN
-         IF (INCY.EQ.1) THEN
-            DO I = 1, N
-               Y(I) = ZERO
-            END DO
-         ELSE
-            IY = KY
-            DO I = 1, N
-               Y(IY) = ZERO
-               IY = IY + INCY
-            END DO
-         END IF
-      ELSE
-*
-*        A sane implementation will do nothing on BETA.EQ.(1.0D+0)
-*
+      IF (BETA.NE.ZERO.AND.BETA.NE.ONE) THEN
          CALL DSCAL(N, BETA, Y, INCY)
       END IF
       IF (ALPHA.EQ.ZERO) RETURN
+      ! This implementation computes y one component at a time
       IF (LSAME(TRANS,'N')) THEN
 *
 *        Form  y := alpha*A*x + y.
 *
          IF (UPPER) THEN
-            IF (INCX.EQ.1) THEN
-               IF (NOUNIT) THEN
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(1:I,I) + y
-*
-                     CALL DAXPY(I, ALPHA*X(I), A(1,I), 1, Y, INCY)
-                  END DO
+            IF (NOUNIT) THEN
+               ! A is NOT assumed unit triangular, so we use A(I,I)
+               IF (BETA.EQ.ZERO) THEN
+                  ! We overwrite y with alpha*A*x
+                  IF (INCX.EQ.1) THEN
+                     IF (INCY.EQ.1) THEN
+                        DO I = 1, N
+                           Y(I) = ALPHA * DDOT(N-I+1, A(I,I), LDA,
+     $                           X(I), INCX)
+                        END DO
+                     ELSE
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * DDOT(N-I+1, A(I,I), LDA,
+     $                           X(I), INCX)
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  ELSE
+                     IF (INCY.EQ.1) THEN
+                        IX = KX
+                        DO I = 1, N
+                           Y(I) = ALPHA * DDOT(N-I+1, A(I,I), LDA,
+     $                           X(IX), INCX)
+                           IX = IX + INCX
+                        END DO
+                     ELSE
+                        IX = KX
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * DDOT(N-I+1, A(I,I), LDA,
+     $                           X(IX), INCX)
+                           IX = IX + INCX
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  END IF
                ELSE
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(1:I-1,I) + y
-*
-                     CALL DAXPY(I-1, ALPHA*X(I), A(1,I), 1, Y, INCY)
-                  END DO
-*
-*                 y = alpha*x + y
-*
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  ! We add y to alpha*A*x
+                  IF (INCX.EQ.1) THEN
+                     IF (INCY.EQ.1) THEN
+                        DO I = 1, N
+                           Y(I) = ALPHA * DDOT(N-I+1, A(I,I), LDA,
+     $                           X(I), INCX) + Y(I)
+                        END DO
+                     ELSE
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * DDOT(N-I+1, A(I,I), LDA,
+     $                           X(I), INCX) + Y(IY)
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  ELSE
+                     IF (INCY.EQ.1) THEN
+                        IX = KX
+                        DO I = 1, N
+                           Y(I) = ALPHA * DDOT(N-I+1, A(I,I), LDA,
+     $                           X(IX), INCX) + Y(I)
+                           IX = IX + INCX
+                        END DO
+                     ELSE
+                        IX = KX
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * DDOT(N-I+1, A(I,I), LDA,
+     $                           X(IX), INCX) + Y(IY)
+                           IX = IX + INCX
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  END IF
                END IF
             ELSE
-               IX = KX
-               IF (NOUNIT) THEN
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(1:I,I) + y
-*
-                     CALL DAXPY(I, ALPHA*X(IX), A(1,I), 1, Y, INCY)
-                     IX = IX + INCX
-                  END DO
+               ! A is assumed unit triangular, so we do NOT use A(I,I)
+               IF (BETA.EQ.ZERO) THEN
+                  ! We overwrite y with alpha*A*x
+                  IF (INCX.EQ.1) THEN
+                     IF (INCY.EQ.1) THEN
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(N-I, A(I,I+1), LDA,
+     $                           X(I+1), INCX) + X(I))
+                        END DO
+                     ELSE
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(N-I, A(I,I+1), LDA,
+     $                           X(I+1), INCX) + X(I))
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  ELSE
+                     IF (INCY.EQ.1) THEN
+                        IX = KX
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(N-I, A(I,I+1), LDA,
+     $                           X(IX+INCX), INCX) + X(IX))
+                           IX = IX + INCX
+                        END DO
+                     ELSE
+                        IX = KX
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(N-I, A(I,I+1), LDA,
+     $                           X(IX+INCX), INCX) + X(IX))
+                           IX = IX + INCX
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  END IF
                ELSE
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(1:I-1,I) + y
-*
-                     CALL DAXPY(I-1, ALPHA*X(IX), A(1,I), 1, Y, INCY)
-                     IX = IX + INCX
-                  END DO
-*
-*                 y = alpha*x + y
-*
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  ! We add y to alpha*A*x
+                  IF (INCX.EQ.1) THEN
+                     IF (INCY.EQ.1) THEN
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(N-I, A(I,I+1), LDA,
+     $                           X(I+1), INCX) + X(I)) + Y(I)
+                        END DO
+                     ELSE
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(N-I, A(I,I+1), LDA,
+     $                           X(I+1), INCX) + X(I)) + Y(IY)
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  ELSE
+                     IF (INCY.EQ.1) THEN
+                        IX = KX
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(N-I, A(I,I+1), LDA,
+     $                           X(IX+INCX), INCX) + X(IX)) + Y(I)
+                           IX = IX + INCX
+                        END DO
+                     ELSE
+                        IX = KX
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(N-I, A(I,I+1), LDA,
+     $                           X(IX+INCX), INCX) + X(IX)) + Y(IY)
+                           IX = IX + INCX
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  END IF
                END IF
             END IF
-         ELSE
-            IF (INCX.EQ.1) THEN
-               IF (NOUNIT) THEN
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(I:N,I) + y
-*
-                     CALL DAXPY(N-I+1, ALPHA*X(I), A(I,I), 1,
-     $                     Y(KY + (I-1)*INCY), INCY)
-                  END DO
+         ELSE ! A is lower triangular
+            IF (NOUNIT) THEN
+               IF (BETA.EQ.ZERO) THEN
+                  ! Replace y with alpha*A*x
+                  IF (INCY.EQ.1) THEN
+                     DO I = 1, N
+                        Y(I) = ALPHA * DDOT(I, A(I,1), LDA,
+     $                        X, INCX)
+                     END DO
+                  ELSE
+                     IY = KY
+                     DO I = 1, N
+                        Y(IY) = ALPHA * DDOT(I, A(I,1), LDA,
+     $                        X, INCX)
+                        IY = IY + INCY
+                     END DO
+                  END IF
                ELSE
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(I+1:N,I) + y
-*
-                     CALL DAXPY(N-I, ALPHA*X(I), A(I+1,I), 1,
-     $                     Y(KY + I*INCY), INCY)
-                  END DO
-*
-*                 y = alpha*x + y
-*
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  ! add alpha*A*x to y
+                  IF (INCY.EQ.1) THEN
+                     DO I = 1, N
+                        Y(I) = ALPHA * DDOT(I, A(I,1), LDA,
+     $                        X, INCX) + Y(I)
+                     END DO
+                  ELSE
+                     IY = KY
+                     DO I = 1, N
+                        Y(IY) = ALPHA * DDOT(I, A(I,1), LDA,
+     $                        X, INCX) + Y(IY)
+                        IY = IY + INCY
+                     END DO
+                  END IF
                END IF
-            ELSE
-               IX = KX
-               IF (NOUNIT) THEN
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(I:N,I) + y
-*
-                     CALL DAXPY(N-I+1, ALPHA*X(IX), A(I,I), 1,
-     $                     Y(KY + (I-1)*INCY), INCY)
-                     IX = IX + INCX
-                  END DO
+            ELSE ! A is assumed unit
+               IF (BETA.EQ.ZERO) THEN
+                  ! Replace y with alpha*A*x
+                  IF (INCX.EQ.1) THEN
+                     IF (INCY.EQ.1) THEN
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(I-1, A(I,1), LDA,
+     $                           X, INCX) + X(I))
+                        END DO
+                     ELSE
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(I-1, A(I,1), LDA,
+     $                           X, INCX) + X(I))
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  ELSE
+                     IF (INCY.EQ.1) THEN
+                        IX = KX
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(I-1, A(I,1), LDA,
+     $                           X, INCX) + X(IX))
+                           IX = IX + INCX
+                        END DO
+                     ELSE
+                        IX = KX
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(I-1, A(I,1), LDA,
+     $                           X, INCX) + X(IX))
+                           IX = IX + INCX
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  END IF
                ELSE
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(I+1:N,I) + y
-*
-                     CALL DAXPY(N-I, ALPHA*X(IX), A(I+1,I), 1,
-     $                     Y(KY + I*INCY), INCY)
-                     IX = IX + INCX
-                  END DO
-*
-*                 y = alpha*x + y
-*
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  ! add alpha*A*x to y
+                  IF (INCX.EQ.1) THEN
+                     IF (INCY.EQ.1) THEN
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(I-1, A(I,1), LDA,
+     $                           X, INCX) + X(I)) + Y(I)
+                        END DO
+                     ELSE
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(I-1, A(I,1), LDA,
+     $                           X, INCX) + X(I)) + Y(IY)
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  ELSE
+                     IF (INCY.EQ.1) THEN
+                        IX = KX
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(I-1, A(I,1), LDA,
+     $                           X, INCX) + X(IX)) + Y(I)
+                           IX = IX + INCX
+                        END DO
+                     ELSE
+                        IX = KX
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(I-1, A(I,1), LDA,
+     $                           X, INCX) + X(IX)) + Y(IY)
+                           IX = IX + INCX
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  END IF
                END IF
             END IF
          END IF
@@ -383,101 +531,204 @@
 *        Form  y := alpha*A**T*x + y.
 *
          IF (UPPER) THEN
-            IF (INCX.EQ.1) THEN
-               IF (NOUNIT) THEN
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(I,I:N) + y
-*
-                     CALL DAXPY(N-I+1, ALPHA*X(I), A(I,I), LDA,
-     $                     Y(KY + (I-1)*INCY), INCY)
-                  END DO
+            IF (NOUNIT) THEN
+               IF (BETA.EQ.ZERO) THEN
+                  ! replace y with alpha A**T x
+                  IF (INCY.EQ.1) THEN
+                     DO I = 1, N
+                        Y(I) = ALPHA * DDOT(I, A(1,I), 1, X, INCX)
+                     END DO
+                  ELSE
+                     IY = KY
+                     DO I = 1, N
+                        Y(IY) = ALPHA * DDOT(I, A(1,I), 1, X, INCX)
+                        IY = IY + INCY
+                     END DO
+                  END IF
                ELSE
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(I,I+1:N) + y
-*
-                     CALL DAXPY(N-I, ALPHA*X(I), A(I,I+1), LDA,
-     $                     Y(KY + I*INCY), INCY)
-                  END DO
-*
-*                 y = alpha*x + y
-*
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                   ! add alpha A**T x to y
+                  IF (INCY.EQ.1) THEN
+                     DO I = 1, N
+                        Y(I) = ALPHA * DDOT(I, A(1,I), 1, X, INCX)
+     $                        + Y(I)
+                     END DO
+                  ELSE
+                     IY = KY
+                     DO I = 1, N
+                        Y(IY) = ALPHA * DDOT(I, A(1,I), 1, X, INCX)
+     $                        + Y(IY)
+                        IY = IY + INCY
+                     END DO
+                  END IF
                END IF
-            ELSE
-               IX = KX
-               IF (NOUNIT) THEN
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(I,I:N) + y
-*
-                     CALL DAXPY(N-I+1, ALPHA*X(IX), A(I,I), LDA,
-     $                     Y(KY + (I-1)*INCY), INCY)
-                     IX = IX + INCX
-                  END DO
+            ELSE ! A is assumed unit triangular
+               IF (BETA.EQ.ZERO) THEN
+                  IF (INCX.EQ.1) THEN
+                     IF (INCY.EQ.1) THEN
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(I-1, A(1,I), 1,
+     $                           X, INCX) + X(I))
+                        END DO
+                     ELSE
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(I-1, A(1,I), 1,
+     $                           X, INCX) + X(I))
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  ELSE
+                     IF (INCY.EQ.1) THEN
+                        IX = KX
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(I-1, A(1,I), 1,
+     $                           X, INCX) + X(IX))
+                           IX = IX + INCX
+                        END DO
+                     ELSE
+                        IX = KX
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(I-1, A(1,I), 1,
+     $                           X, INCX) + X(IX))
+                           IX = IX + INCX
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  END IF
                ELSE
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(I,I+1:N) + y
-*
-                     CALL DAXPY(N-I, ALPHA*X(IX), A(I,I+1), LDA,
-     $                     Y(KY + I*INCY), INCY)
-                     IX = IX + INCX
-                  END DO
-*
-*                 y = alpha*x + y
-*
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  ! add alpha*A**T*x to y
+                  IF (INCX.EQ.1) THEN
+                     IF (INCY.EQ.1) THEN
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(I-1, A(1,I), 1,
+     $                           X, INCX) + X(I)) + Y(I)
+                        END DO
+                     ELSE
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(I-1, A(1,I), 1,
+     $                           X, INCX) + X(I)) + Y(IY)
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  ELSE
+                     IF (INCY.EQ.1) THEN
+                        IX = KX
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(I-1, A(1,I), 1,
+     $                           X, INCX) + X(IX)) + Y(I)
+                           IX = IX + INCX
+                        END DO
+                     ELSE
+                        IX = KX
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(I-1, A(1,I), 1,
+     $                           X, INCX) + X(IX)) + Y(IY)
+                           IX = IX + INCX
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  END IF
                END IF
             END IF
-         ELSE
-            IF (INCX.EQ.1) THEN
-               IF (NOUNIT) THEN
+         ELSE ! A is lower triangular
+            IF (NOUNIT) THEN
+               IF (BETA.EQ.ZERO) THEN
+                  ! replace y with alpha*A**T *x
+                  ! assume incx,incy.ne.1
+                  IX = KX
+                  IY = KY
                   DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(I,1:I) + y
-*
-                     CALL DAXPY(I, ALPHA*X(I), A(I,1), LDA,
-     $                     Y, INCY)
+                     Y(IY) = ALPHA * DDOT(N-I+1, A(I,I), 1,
+     $                     X(IX), INCX)
+                     IX = IX + INCX
+                     IY = IY + INCY
                   END DO
                ELSE
+                  ! add alpha*A**T *x to y
+                  ! assume incx,incy.ne.1
+                  IX = KX
+                  IY = KY
                   DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(I,1:I-1) + y
-*
-                     CALL DAXPY(I-1, ALPHA*X(I), A(I,1), LDA,
-     $                     Y, INCY)
+                     Y(IY) = ALPHA * DDOT(N-I+1, A(I,I), 1,
+     $                     X(IX), INCX) + Y(IY)
+                     IX = IX + INCX
+                     IY = IY + INCY
                   END DO
-*
-*                 y = alpha*x + y
-*
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
                END IF
             ELSE
-               IX = KX
-               IF (NOUNIT) THEN
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(I,1:I) + y
-*
-                     CALL DAXPY(I, ALPHA*X(IX), A(I,1), LDA,
-     $                     Y, INCY)
-                     IX = IX + INCX
-                  END DO
+               IF (BETA.EQ.ZERO) THEN
+                  ! replace y with alpha*A**T *x
+                  IF (INCX.EQ.1) THEN
+                     IF (INCY.EQ.1) THEN
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(N-I, A(I+1,I), 1,
+     $                           X(I+1), 1) + X(I))
+                        END DO
+                     ELSE
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(N-I, A(I+1,I), 1,
+     $                           X(I+1), 1) + X(I))
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  ELSE
+                     IF (INCY.EQ.1) THEN
+                        IX = KX
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(N-I, A(I+1,I), 1,
+     $                           X(IX+INCX), INCX) + X(IX))
+                           IX = IX + INCX
+                        END DO
+                     ELSE
+                        IX = KX
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(N-I, A(I+1,I), 1,
+     $                           X(IX+INCX), INCX) + X(IX))
+                           IX = IX + INCX
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  END IF
                ELSE
-                  DO I = 1, N
-*
-*                    y = (alpha*x(i))*A(I,1:I-1) + y
-*
-                     CALL DAXPY(I-1, ALPHA*X(IX), A(I,1), LDA,
-     $                     Y, INCY)
-                     IX = IX + INCX
-                  END DO
-*
-*                    y = alpha*x + y
-*
-                  CALL DAXPY(N, ALPHA, X, INCX, Y, INCY)
+                  ! add alpha*A**T *x to y
+                  IF (INCX.EQ.1) THEN
+                     IF (INCY.EQ.1) THEN
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(N-I, A(I+1,I), 1,
+     $                           X(I+1), 1) + X(I)) + Y(I)
+                        END DO
+                     ELSE
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(N-I, A(I+1,I), 1,
+     $                           X(I+1), 1) + X(I)) + Y(IY)
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  ELSE
+                     IF (INCY.EQ.1) THEN
+                        IX = KX
+                        DO I = 1, N
+                           Y(I) = ALPHA * (DDOT(N-I, A(I+1,I), 1,
+     $                           X(IX+INCX), INCX) + X(IX)) + Y(I)
+                           IX = IX + INCX
+                        END DO
+                     ELSE
+                        IX = KX
+                        IY = KY
+                        DO I = 1, N
+                           Y(IY) = ALPHA * (DDOT(N-I, A(I+1,I), 1,
+     $                           X(IX+INCX), INCX) + X(IX)) + Y(IY)
+                           IX = IX + INCX
+                           IY = IY + INCY
+                        END DO
+                     END IF
+                  END IF
                END IF
             END IF
          END IF
