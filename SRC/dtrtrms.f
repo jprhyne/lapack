@@ -8,8 +8,8 @@
 *  Definition:
 *  ===========
 *
-*     SUBROUTINE DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N,
-*    $            T, LDT, V, LDV)
+*     RECURSIVE SUBROUTINE DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV,
+*    $            N, ALPHA, T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..
 *        INTEGER           N, LDT, LDV
@@ -26,9 +26,9 @@
 *>
 *> DTRTRMS solves one of the following systems for X
 *>
-*>       T * X = op(V)
+*>       T * X = alpha * op(V)
 *>                      or
-*>       X * T = op(V)
+*>       X * T = alpha * op(V)
 *> T and V are unit, or non-unit, upper or
 *> lower triangular matrix, op(V) has the same shape as T , and op(V) is one of
 *>
@@ -57,7 +57,7 @@
 *>             UPLO = 'U' or 'u'    T is upper triangular
 *>
 *>             UPLO = 'L' or 'l'    T is lower triangular
-*> \Endverbatim
+*> \endverbatim
 *>
 *> \param[in] TRANSV
 *> \verbatim
@@ -100,6 +100,12 @@
 *>          N is INTEGER
 *>           On entry, N specifies the number of rows and columns of T.
 *>           N must be at least zero.
+*> \endverbatim
+*>
+*> \param[in] ALPHA
+*> \verbatim
+*>          ALPHA is DOUBLE PRECISION
+*>             On entry, ALPHA specifies the scalar alpha
 *> \endverbatim
 *>
 *> \param[in/out] T
@@ -156,12 +162,13 @@
 *> \author NAG Ltd.
 *
 *  =====================================================================
-      SUBROUTINE DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N,
-     $            T, LDT, V, LDV)
+      RECURSIVE SUBROUTINE DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV,
+     $            N, ALPHA, T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..
          INTEGER           N, LDT, LDV
          CHARACTER         SIDE, UPLO, TRANS, DIAGT, DIAGV
+         DOUBLE PRECISION  ALPHA
 *        ..
 *        .. Array Arguments ..
          DOUBLE PRECISION  T(LDT,*), V(LDV,*)
@@ -176,11 +183,10 @@
 *        .. Local Scalars ..
          INTEGER           I, J, K
          LOGICAL           TLEFT, TUPPER, VTRANS, VUNIT, TUNIT
-         DOUBLE PRECISION  TMP
 *        ..
 *        .. Local Parameters ..
-         DOUBLE PRECISION  ONE
-         PARAMETER(ONE=1.0D+0)
+         DOUBLE PRECISION  NEG_ONE, ONE
+         PARAMETER(NEG_ONE=-1.0D+0, ONE=1.0D+0)
 *        ..
 *
 *        Beginning of Executable Statements
@@ -190,816 +196,525 @@
          VTRANS = LSAME(TRANS, 'T').OR.LSAME(TRANS, 'C')
          TUNIT = LSAME(DIAGT, 'U')
          VUNIT = LSAME(DIAGV, 'U')
-
-         IF (TLEFT) THEN
-            IF (TUPPER) THEN
+*
+*        Terminating case
+*
+         IF (N.EQ.1) THEN
+            CALL DTRTRMS_LVL2(SIDE, UPLO, TRANS, DIAGT, DIAGV,
+     $            N, ALPHA, T, LDT, V, LDV)
+            RETURN
+         ELSE IF(N.LE.0) THEN
+            RETURN
+         END IF
+*
+*        Recursive case
+*
+         K = N/2
+         IF (TUPPER) THEN
+*
+*           T is upper triangular
+*
+            IF (TLEFT) THEN
+*
+*              Solve T*X = alpha * op(V) for X overwritting T
+*
                IF (VTRANS) THEN
-                  IF (TUNIT) THEN
-                     IF (VUNIT) THEN
 *
-*                       For each column in T
+*                 We are computing X such that T*X = V**T, which we break down as follows
+*                 |--------------|   |--------------|            |--------------------|
+*                 |T_{11}  T_{12}|   |X_{11}  X_{12}|            |V_{11}**T  V_{21}**T|
+*                 |0       T_{22}| * |0       X_{22}|  = alpha * |0          V_{22}**T|
+*                 |--------------|   |--------------|            |--------------------|
 *
-                        DO J = N, 1, -1
+*                 Where
+*                 T_{11}\in\R^{k\times k}    T_{12}\in\R^{k\times n-k}
+*                                            T_{22}\in\R^{n-k\times n-k}
 *
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
+*                 V_{11}\in\R^{k\times k}
+*                 V_{21}\in\R^{n-k\times k}  V_{22}\in\R^{n-k\times n-k}
 *
-                           T(J,J) = ONE
+*                 Which means that we get the following systems we need to solve
 *
-*                          compute all elements above
+*                 T_{11}*X_{11}                 = alpha V_{11}^\top
+*                 T_{11}*X_{12} + T_{12}*X_{22} = alpha V_{21}^\top
+*                 T_{22}*X_{22}                 = alpha V_{22}^\top
 *
-                           IF (J.GT.1) THEN
-                              DO I = J-1, 1, -1
-                                 TMP = V(J,I)
-                                 DO K = J, I+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 Computing X_{11} and X_{22} are just recursive calls to this
+*                 routine, Which we must do in reverse order since we cannot
+*                 overwrite T_{11} until after we compute X_{12}, which we need
+*                 X_{22} first.
 *
-*                       For each column in T
+*                 Solve T_{22}*X_{22} = alpha V_{22}^\top
 *
-                        DO J = N, 1, -1
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+     $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
 *
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
+*                 We solve the system
 *
-                           T(J,J) = V(J,J)
+*                 T_{11}*X_{12} + T_{12}*X_{22} = alpha V_{21}^\top
 *
-*                          Compute all elements above
+*                 Our final result will be stored in T_{12}, so we can use
+*                 this as a temporary workspace
 *
-                           IF (J.GT.1) THEN
-                              DO I = J-1, 1, -1
-                                 TMP = V(J,I)
-                                 DO K = J, I+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-*                 .NOT.TUNIT
-                  ELSE
-                     IF (VUNIT) THEN
+*                 T_{12} = -T_{12}*X_{22}        (TRMM)
 *
-*                       For each column in T
+                  CALL DTRMM('Right', UPLO, 'No Transpose', 'Non-unit',
+     $                  K, N-K, NEG_ONE, T(K+1,K+1), LDT, T(1,K+1), LDT)
 *
-                        DO J = N, 1, -1
+*                 T_{12} = T_{12} + alpha V_{21}^\top
 *
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
+                  DO I = 1, K
+                     DO J = K+1, N
+                        T(I,J) = T(I,J) + ALPHA * V(J,I)
+                     END DO
+                  END DO
 *
-                           T(J,J) = ONE / T(J,J)
+*                 Solve T_{11}*X_{12} = T_{12}  (TRSM)
 *
-*                          Compute all elements above
+                  CALL DTRSM('Left', UPLO, 'No Transpose', DIAGT,
+     $                  K, N-K, ONE, T, LDT, T(1,K+1), LDT)
 *
-                           IF (J.GT.1) THEN
-                              DO I = J-1, 1, -1
-                                 TMP = V(J,I)
-                                 DO K = J, I+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 Solve T_{11}*X_{11} = alpha V_{11}^\top  (TRTRMS)
 *
-*                       For each column in T
-*
-                        DO J = N, 1, -1
-*
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
-*
-                           T(J,J) = V(J,J) / T(J,J)
-*
-*                          Compute all elements above
-*
-                           IF (J.GT.1) THEN
-                              DO I = J-1, 1, -1
-                                 TMP = V(J,I)
-                                 DO K = J, I+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-                  END IF
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+     $                  ALPHA, T, LDT, V, LDV)
 *              .NOT.VTRANS
                ELSE
-                  IF (TUNIT) THEN
-                     IF (VUNIT) THEN
 *
-*                       For each column in T
+*                 We are computing X such that T*X = alpha V, which we break down as follows
+*                 |--------------|   |--------------|            |--------------|
+*                 |T_{11}  T_{12}|   |X_{11}  X_{12}|            |V_{11}  V_{12}|
+*                 |0       T_{22}| * |0       X_{22}|  = alpha * |0       V_{22}|
+*                 |--------------|   |--------------|            |--------------|
 *
-                        DO J = N, 1, -1
+*                 Where
+*                 T_{11}\in\R^{k\times k}    T_{12}\in\R^{k\times n-k}
+*                                            T_{22}\in\R^{n-k\times n-k}
 *
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
+*                 V_{11}\in\R^{k\times k}    V_{12}\in\R^{k\times n-k}
+*                                            V_{22}\in\R^{n-k\times n-k}
 *
-                           T(J,J) = ONE
+*                 Which means that we get the following systems we need to solve
 *
-*                          Compute all elements above
+*                 T_{11}*X_{11}                 = alpha V_{11}
+*                 T_{11}*X_{12} + T_{12}*X_{22} = alpha V_{12}
+*                 T_{22}*X_{22}                 = alpha V_{22}
 *
-                           IF (J.GT.1) THEN
-                              DO I = J-1, 1, -1
-                                 TMP = V(I,J)
-                                 DO K = J, I+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 Computing X_{11} and X_{22} are just recursive calls to this
+*                 routine, Which we must do in reverse order since we cannot
+*                 overwrite T_{11} until after we compute X_{12}, which we need
+*                 X_{22} first.
 *
-*                       For each column in T
+*                 Solve T_{22}*X_{22} = alpha V_{22}
 *
-                        DO J = N, 1, -1
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+     $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
 *
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
+*                 We solve the system
 *
-                           T(J,J) = V(J,J)
+*                 T_{11}*X_{12} + T_{12}*X_{22} = alpha V_{12}
 *
-*                          Compute all elements above
+*                 Our final result will be stored in T_{12}, so we can use
+*                 this as a temporary workspace
 *
-                           IF (J.GT.1) THEN
-                              DO I = J-1, 1, -1
-                                 TMP = V(I,J)
-                                 DO K = J, I+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-*                 .NOT.TUNIT
-                  ELSE
-                     IF (VUNIT) THEN
+*                 T_{12} = -T_{12}*X_{22}        (TRMM)
 *
-*                       For each column in T
+                  CALL DTRMM('Right', UPLO, 'No Transpose', 'Non-unit',
+     $                  K, N-K, NEG_ONE, T(K+1,K+1), LDT, T(1,K+1), LDT)
 *
-                        DO J = N, 1, -1
+*                 T_{12} = T_{12} + alpha V_{12}
 *
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
+                  DO I = 1, K
+                     DO J = K+1, N
+                        T(I,J) = T(I,J) + ALPHA * V(I,J)
+                     END DO
+                  END DO
 *
-                           T(J,J) = ONE / T(J,J)
+*                 Solve T_{11}*X_{12} = T_{12}  (TRSM)
 *
-*                          Compute all elements above
+                  CALL DTRSM('Left', UPLO, 'No Transpose', DIAGT,
+     $                  K, N-K, ONE, T, LDT, T(1,K+1), LDT)
 *
-                           IF (J.GT.1) THEN
-                              DO I = J-1, 1, -1
-                                 TMP = V(I,J)
-                                 DO K = J, I+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 Solve T_{11}*X_{11} = alpha V_{11}  (TRTRMS)
 *
-*                       For each column in T
-*
-                        DO J = N, 1, -1
-*
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
-*
-                           T(J,J) = V(J,J) / T(J,J)
-*
-*                          Compute all elements above
-*
-                           IF (J.GT.1) THEN
-                              DO I = J-1, 1, -1
-                                 TMP = V(I,J)
-                                 DO K = J, I+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-                  END IF
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+     $                  ALPHA, T, LDT, V, LDV)
                END IF
-*           .NOT.TUPPER
             ELSE
+*
+*              Solve X*T = alpha op(V) for X overwriting T
+*
                IF (VTRANS) THEN
-                  IF (TUNIT) THEN
-                     IF (VUNIT) THEN
 *
-*                       For each column in T
+*                 We are computing X such that X*T = alpha V**T
+*                 |--------------|   |--------------|           |--------------------|
+*                 |X_{11}  X_{12}|   |T_{11}  T_{12}|           |V_{11}**T  V_{21}**T|
+*                 |0       X_{22}| * |0       T_{22}| = alpha * |0          V_{22}**T|
+*                 |--------------|   |--------------|           |--------------------|
 *
-                        DO J = 1, N
+*                 Where
+*                 T_{11}\in\R^{k\times k}    T_{12}\in\R^{k\times n-k}
+*                                            T_{22}\in\R^{n-k\times n-k}
 *
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
+*                 V_{11}\in\R^{k\times k}
+*                 V_{21}\in\R^{n-k\times k}  V_{22}\in\R^{n-k\times n-k}
 *
-                           T(J,J) = ONE
+*                 Which means that we need to solve the following systems
 *
-*                          Compute all elements below
+*                 X_{11}*T_{11}                 = alpha V_{11}**T
+*                 X_{11}*T_{12} + X_{12}*T_{22} = alpha V_{21}**T
+*                 X_{22}*T_{22}                 = alpha V_{22}**T
 *
-                           IF (J.LT.N) THEN
-                              DO I = J+1, N
-                                 TMP = V(J,I)
-                                 DO K = J, I-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 we compute X_{11} since this will be used to help compute
+*                 X_{12}.
 *
-*                       For each column in T
+*                 Solve X_{11}*T_{11} = alpha V_{11}**T
 *
-                        DO J = 1, N
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+     $                  ALPHA, T, LDT, V, LDV)
 *
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
+*                 We solve the system
 *
-                           T(J,J) = V(J,J)
+*                 X_{11}*T_{12} + X_{12}*T_{22} = alpha V_{21}**T
 *
-*                          Compute all elements below
+*                 Our final result will be stored in T_{12}, so we can use
+*                 this as a temporary workspace
 *
-                           IF (J.LT.N) THEN
-                              DO I = J+1, N
-                                 TMP = V(J,I)
-                                 DO K = J, I-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-*                 .NOT.TUNIT
-                  ELSE
-                     IF (VUNIT) THEN
+*                 T_{12} = -X_{11}*T_{12}        (TRMM)
 *
-*                       For each column in T
+                  CALL DTRMM('Left', UPLO, 'No Transpose',
+     $                  'Non-unit', K, N-K, NEG_ONE, T, LDT, T(1,K+1),
+     $                  LDT)
 *
-                        DO J = 1, N
+*                 T_{12} = T_{12} + alpha V_{21}^\top
 *
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
+                  DO I = 1, K
+                     DO J = K+1, N
+                        T(I,J) = T(I,J) + ALPHA * V(J,I)
+                     END DO
+                  END DO
 *
-                           T(J,J) = ONE / T(J,J)
+*                 Solve X_{12}*T_{22} = T_{12}  (TRSM)
 *
-*                          Compute all elements below
+                  CALL DTRSM('Right', UPLO, 'No Transpose', DIAGT,
+     $                  K, N-K, ONE, T(K+1,K+1), LDT, T(1,K+1), LDT)
 *
-                           IF (J.LT.N) THEN
-                              DO I = J+1, N
-                                 TMP = V(J,I)
-                                 DO K = J, I-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 Solve T_{22}*X_{22} = alpha V_{22}^\top
 *
-*                       For each column in T
-*
-                        DO J = 1, N
-*
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
-*
-                           T(J,J) = V(J,J) / T(J,J)
-*
-*                          Compute all elements below
-*
-                           IF (J.LT.N) THEN
-                              DO I = J+1, N
-                                 TMP = V(J,I)
-                                 DO K = J, I-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-                  END IF
-*              .NOT.VTRANS
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+     $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
                ELSE
-                  IF (TUNIT) THEN
-                     IF (VUNIT) THEN
 *
-*                       For each column in T
+*                 We are computing X such that X*T = alpha V
+*                 |--------------|   |--------------|           |--------------|
+*                 |X_{11}  X_{12}|   |T_{11}  T_{12}|           |V_{11}  V_{21}|
+*                 |0       X_{22}| * |0       T_{22}| = alpha * |0       V_{22}|
+*                 |--------------|   |--------------|           |--------------|
 *
-                        DO J = 1, N
+*                 Where
+*                 T_{11}\in\R^{k\times k}    T_{12}\in\R^{k\times n-k}
+*                                            T_{22}\in\R^{n-k\times n-k}
 *
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
+*                 V_{11}\in\R^{k\times k}    V_{12}\in\R^{k\times n-k}
+*                                            V_{22}\in\R^{n-k\times n-k}
 *
-                           T(J,J) = ONE
+*                 Which means that we need to solve the following systems
 *
-*                          Compute all elements below
+*                 X_{11}*T_{11}                 = alpha V_{11}
+*                 X_{11}*T_{12} + X_{12}*T_{22} = alpha V_{12}
+*                 X_{22}*T_{22}                 = alpha V_{22}
 *
-                           IF (J.LT.N) THEN
-                              DO I = J+1, N
-                                 TMP = V(I,J)
-                                 DO K = J, I-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 we compute X_{11} since this will be used to help compute
+*                 X_{12}.
 *
-*                       For each column in T
+*                 Solve X_{11}*T_{11} = V_{11}
 *
-                        DO J = 1, N
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+     $                  ALPHA, T, LDT, V, LDV)
 *
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
+*                 We solve the system
 *
-                           T(J,J) = V(J,J)
+*                 X_{11}*T_{12} + X_{12}*T_{22} = alpha V_{12}
 *
-*                          Compute all elements below
+*                 Our final result will be stored in T_{12}, so we can use
+*                 this as a temporary workspace
 *
-                           IF (J.LT.N) THEN
-                              DO I = J+1, N
-                                 TMP = V(I,J)
-                                 DO K = J, I-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-*                 .NOT.TUNIT
-                  ELSE
-                     IF (VUNIT) THEN
+*                 T_{12} = -X_{11}*T_{12}        (TRMM)
 *
-*                       For each column in T
+                  CALL DTRMM('Left', UPLO, 'No Transpose',
+     $                  'Non-unit', K, N-K, NEG_ONE, T, LDT, T(1,K+1),
+     $                  LDT)
 *
-                        DO J = 1, N
+*                 T_{12} = T_{12} + alpha V_{12}
 *
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
+                  DO I = 1, K
+                     DO J = K+1, N
+                        T(I,J) = T(I,J) + ALPHA * V(I,J)
+                     END DO
+                  END DO
 *
-                           T(J,J) = ONE / T(J,J)
+*                 Solve X_{12}*T_{22} = T_{12}  (TRSM)
 *
-*                          Compute all elements below
+                  CALL DTRSM('Right', UPLO, 'No Transpose', DIAGT,
+     $                  K, N-K, ONE, T(K+1,K+1), LDT, T(1,K+1), LDT)
 *
-                           IF (J.LT.N) THEN
-                              DO I = J+1, N
-                                 TMP = V(I,J)
-                                 DO K = J, I-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 Solve T_{22}*X_{22} = alpha V_{22}^\top
 *
-*                       For each column in T
-*
-                        DO J = 1, N
-*
-*                          Compute from the bottom of the column to top
-*                          Compute the element on the diagonal
-*
-                           T(J,J) = V(J,J) / T(J,J)
-*
-*                          Compute all elements below
-*
-                           IF (J.LT.N) THEN
-                              DO I = J+1, N
-                                 TMP = V(I,J)
-                                 DO K = J, I-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-                  END IF
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+     $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
                END IF
             END IF
-*        .NOT.TLEFT
+*        .NOT.TUPPER
          ELSE
-            IF (TUPPER) THEN
+*
+*           T is lower triangular
+*
+            IF (TLEFT) THEN
+*
+*              Solve T*X = alpha op(V) for X overwritting T
+*
                IF (VTRANS) THEN
-                  IF (TUNIT) THEN
-                     IF (VUNIT) THEN
 *
-*                       For each row of T
+*                 We are computing X such that T*X = V**T, which we break down as follows
+*                 |--------------|   |--------------|            |--------------------|
+*                 |T_{11}  0     |   |X_{11}  0     |            |V_{11}**T  0        |
+*                 |T_{21}  T_{22}| * |X_{21}  X_{22}|  = alpha * |V_{12}**T  V_{22}**T|
+*                 |--------------|   |--------------|            |--------------------|
 *
-                        DO I = 1, N
+*                 Where
+*                 T_{11}\in\R^{k\times k}
+*                 T_{21}\in\R^{n-k\times k}  T_{22}\in\R^{n-k\times n-k}
 *
-*                          Compute the leftmost component of the row
+*                 V_{11}\in\R^{k\times k}    V_{12}\in\R^{k\times n-k}
+*                                            V_{22}\in\R^{n-k\times n-k}
 *
-                           T(I,I) = ONE
+*                 Which means that we get the following systems we need to solve
 *
-*                          Compute all elements to the right (if any)
+*                 T_{11}*X_{11}                 = alpha V_{11}**T
+*                 T_{21}*X_{11} + T_{22}*X_{21} = alpha V_{12}**T
+*                 T_{22}*X_{22}                 = alpha V_{22}**T
 *
-                           IF (I.LT.N) THEN
-                              DO J = I+1, N
-                                 TMP = V(J,I)
-                                 DO K = I, J-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 we compute X_{11} since this will be used to help compute
+*                 X_{21}.
 *
-*                       For each row of T
+*                 Solve T_{11}*X_{11} = alpha V_{11}**T
 *
-                        DO I = 1, N
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+     $                  ALPHA, T, LDT, V, LDV)
 *
-*                          Compute the leftmost component of the row
+*                 We solve the system
 *
-                           T(I,I) = V(I,I)
+*                 T_{21}*X_{11} + T_{22}*X_{21} = alpha V_{12}**T
 *
-*                          Compute all elements to the right (if any)
+*                 Our final result will be stored in T_{21}, so we can use
+*                 this as a temporary workspace
 *
-                           IF (I.LT.N) THEN
-                              DO J = I+1, N
-                                 TMP = V(J,I)
-                                 DO K = I, J-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-*                 .NOT.TUNIT
-                  ELSE
-                     IF (VUNIT) THEN
+*                 T_{21} = -T_{21}*X_{11} (TRMM)
 *
-*                       For each row of T
+                  CALL DTRMM('Right', UPLO, 'No Transpose',
+     $                  'Non-unit', N-K, K, NEG_ONE, T, LDT, T(K+1,1),
+     $                  LDT)
 *
-                        DO I = 1, N
+*                 T_{21} = T_{21} + alpha V_{12}**T
 *
-*                          Compute the leftmost component of the row
+                  DO I = K+1, N
+                     DO J = 1, K
+                        T(I,J) = T(I,J) + ALPHA * V(J,I)
+                     END DO
+                  END DO
 *
-                           T(I,I) = ONE / T(I,I)
+*                 Solve T_{22}*X_{21} = T_{21}  (TRSM)
 *
-*                          Compute all elements to the right (if any)
+                  CALL DTRSM('Left', UPLO, 'No Transpose', DIAGT,
+     $                  N-K, K, ONE, T(K+1,K+1), LDT, T(K+1,1), LDT)
 *
-                           IF (I.LT.N) THEN
-                              DO J = I+1, N
-                                 TMP = V(J,I)
-                                 DO K = I, J-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 Solve T_{22}*X_{22} = alpha V_{22}**T
 *
-*                       For each row of T
-*
-                        DO I = 1, N
-*
-*                          Compute the leftmost component of the row
-*
-                           T(I,I) = V(I,I) / T(I,I)
-*
-*                          Compute all elements to the right (if any)
-*
-                           IF (I.LT.N) THEN
-                              DO J = I+1, N
-                                 TMP = V(J,I)
-                                 DO K = I, J-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-                  END IF
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+     $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
 *              .NOT.VTRANS
                ELSE
-                  IF (TUNIT) THEN
-                     IF (VUNIT) THEN
 *
-*                       For each row of T
+*                 We are computing X such that T*X = alpha V**T, which we break down as follows
+*                 |--------------|   |--------------|            |--------------|
+*                 |T_{11}  0     |   |X_{11}  0     |            |V_{11}  0     |
+*                 |T_{21}  T_{22}| * |X_{21}  X_{22}|  = alpha * |V_{21}  V_{22}|
+*                 |--------------|   |--------------|            |--------------|
 *
-                        DO I = 1, N
+*                 Where
+*                 T_{11}\in\R^{k\times k}
+*                 T_{21}\in\R^{n-k\times k}  T_{22}\in\R^{n-k\times n-k}
 *
-*                          Compute the leftmost component of the row
+*                 V_{11}\in\R^{k\times k}
+*                 T_{21}\in\R^{n-k\times k}  V_{22}\in\R^{n-k\times n-k}
 *
-                           T(I,I) = ONE
+*                 Which means that we get the following systems we need to solve
 *
-*                          Compute all elements to the right (if any)
+*                 T_{11}*X_{11}                 = alpha V_{11}
+*                 T_{21}*X_{11} + T_{22}*X_{21} = alpha V_{21}
+*                 T_{22}*X_{22}                 = alpha V_{22}
 *
-                           IF (I.LT.N) THEN
-                              DO J = I+1, N
-                                 TMP = V(I,J)
-                                 DO K = I, J-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 we compute X_{11} since this will be used to help compute
+*                 X_{21}.
 *
-*                       For each row of T
+*                 Solve T_{11}*X_{11} = alpha V_{11}
 *
-                        DO I = 1, N
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+     $                  ALPHA, T, LDT, V, LDV)
 *
-*                          Compute the leftmost component of the row
+*                 We solve the system
 *
-                           T(I,I) = V(I,I)
+*                 T_{21}*X_{11} + T_{22}*X_{21} = alpha V_{21}
 *
-*                          Compute all elements to the right (if any)
+*                 Our final result will be stored in T_{21}, so we can use
+*                 this as a temporary workspace
 *
-                           IF (I.LT.N) THEN
-                              DO J = I+1, N
-                                 TMP = V(I,J)
-                                 DO K = I, J-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-*                 .NOT.TUNIT
-                  ELSE
-                     IF (VUNIT) THEN
+*                 T_{21} = -T_{21}*X_{11} (TRMM)
 *
-*                       For each row of T
+                  CALL DTRMM('Right', UPLO, 'No Transpose',
+     $                  'Non-unit', N-K, K, NEG_ONE, T, LDT, T(K+1,1),
+     $                  LDT)
 *
-                        DO I = 1, N
+*                 T_{21} = T_{21} + alpha V_{21}
 *
-*                          Compute the leftmost component of the row
+                  DO I = K+1, N
+                     DO J = 1, K
+                        T(I,J) = T(I,J) + ALPHA * V(I,J)
+                     END DO
+                  END DO
 *
-                           T(I,I) = ONE / T(I,I)
+*                 Solve T_{22}*X_{21} = T_{21}  (TRSM)
 *
-*                          Compute all elements to the right (if any)
+                  CALL DTRSM('Left', UPLO, 'No Transpose', DIAGT,
+     $                  N-K, K, ONE, T(K+1,K+1), LDT, T(K+1,1), LDT)
 *
-                           IF (I.LT.N) THEN
-                              DO J = I+1, N
-                                 TMP = V(I,J)
-                                 DO K = I, J-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 Solve T_{22}*X_{22} = alpha V_{22}
 *
-*                       For each row of T
-*
-                        DO I = 1, N
-*
-*                          Compute the leftmost component of the row
-*
-                           T(I,I) = V(I,I) / T(I,I)
-*
-*                          Compute all elements to the right (if any)
-*
-                           IF (I.LT.N) THEN
-                              DO J = I+1, N
-                                 TMP = V(I,J)
-                                 DO K = I, J-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-                  END IF
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+     $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
                END IF
-*           .NOT.TUPPER
             ELSE
+*
+*              Compute X such that X*T = alpha op(V)
+*
                IF (VTRANS) THEN
-                  IF (TUNIT) THEN
-                     IF (VUNIT) THEN
 *
-*                       For each row of T
+*                 We are computing X such that X*T = alpha V**T, which we break down as follows
+*                 |--------------|   |--------------|            |-------------------|
+*                 |X_{11}  0     |   |T_{11}  0     |            |V_{11}**T 0        |
+*                 |X_{21}  X_{22}| * |T_{21}  T_{22}|  = alpha * |V_{12}**T V_{22}**T|
+*                 |--------------|   |--------------|            |-------------------|
 *
-                        DO I = N, 1, -1
+*                 Where
+*                 T_{11}\in\R^{k\times k}
+*                 T_{21}\in\R^{n-k\times k}  T_{22}\in\R^{n-k\times n-k}
 *
-*                          Compute the rightmost component of the row
+*                 V_{11}\in\R^{k\times k}
+*                 T_{21}\in\R^{n-k\times k}  V_{22}\in\R^{n-k\times n-k}
 *
-                           T(I,I) = ONE
+*                 Which means that we get the following systems we need to solve
 *
-*                          If necessary, compute all elements to the left
+*                 X_{11}*T_{11}                 = alpha V_{11}**T
+*                 X_{21}*T_{11} + X_{22}*T_{21} = alpha V_{12}**T
+*                 X_{22}*T_{22}                 = alpha V_{22}**T
 *
-                           IF (I.NE.1) THEN
-                              DO J = I-1, 1, -1
-                                 TMP = V(J,I)
-                                 DO K = I, J+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 We compute X_{22} since this will be used to help compute
+*                 X_{21}.
 *
-*                       For each row of T
+*                 Solve X_{22}*T_{22} = alpha V_{22}**T
 *
-                        DO I = N, 1, -1
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+     $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
 *
-*                          Compute the rightmost component of the row
+*                 We solve the system
 *
-                           T(I,I) = V(I,I)
+*                 X_{21}*T_{11} + X_{22}*T_{21} = alpha V_{12}**T
 *
-*                          If necessary, compute all elements to the left
+*                 Our final result will be stored in T_{21}, so we can use
+*                 this as a temporary workspace
 *
-                           IF (I.NE.1) THEN
-                              DO J = I-1, 1, -1
-                                 TMP = V(J,I)
-                                 DO K = I, J+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-*                 .NOT.TUPPER
-                  ELSE
-                     IF (VUNIT) THEN
+*                 T_{21} = -X_{22}*T_{21} (TRMM)
 *
-*                       For each row of T
+                  CALL DTRMM('Left', UPLO, 'No Transpose',
+     $                  'Non-Unit', N-K, K, NEG_ONE, T(K+1,K+1), LDT,
+     $                  T(K+1,1), LDT)
 *
-                        DO I = N, 1, -1
+*                 T_{21} = T_{21} + alpha V_{12}**T
 *
-*                          Compute the rightmost component of the row
+                  DO I = K+1, N
+                     DO J = 1, K
+                        T(I,J) = T(I,J) + ALPHA * V(J,I)
+                     END DO
+                  END DO
 *
-                           T(I,I) = ONE / T(I,I)
+*                 Solve X_{21}*T_{11} = T_{21}  (TRSM)
 *
-*                          If necessary, compute all elements to the left
+                  CALL DTRSM('Right', UPLO, 'No Transpose', DIAGT,
+     $                  N-K, K, ONE, T, LDT, T(K+1,1), LDT)
 *
-                           IF (I.NE.1) THEN
-                              DO J = I-1, 1, -1
-                                 TMP = V(J,I)
-                                 DO K = I, J+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 Solve X_{11}*T_{11} = alpha V_{11}**T
 *
-*                       For each row of T
-*
-                        DO I = N, 1, -1
-*
-*                          Compute the rightmost component of the row
-*
-                           T(I,I) = V(I,I) / T(I,I)
-*
-*                          If necessary, compute all elements to the left
-*
-                           IF (I.NE.1) THEN
-                              DO J = I-1, 1, -1
-                                 TMP = V(J,I)
-                                 DO K = I, J+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-                  END IF
-*              .NOT.VTRANS
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+     $                  ALPHA, T, LDT, V, LDV)
                ELSE
-                  IF (TUNIT) THEN
-                     IF (VUNIT) THEN
 *
-*                       For each row of T
+*                 We are computing X such that X*T = alpha V**T, which we break down as follows
+*                 |--------------|   |--------------|            |-------------|
+*                 |X_{11}  0     |   |T_{11}  0     |            |V_{11} 0     |
+*                 |X_{21}  X_{22}| * |T_{21}  T_{22}|  = alpha * |V_{21} V_{22}|
+*                 |--------------|   |--------------|            |-------------|
 *
-                        DO I = N, 1, -1
+*                 Where
+*                 T_{11}\in\R^{k\times k}
+*                 T_{21}\in\R^{n-k\times k}  T_{22}\in\R^{n-k\times n-k}
 *
-*                          Compute the rightmost component of the row
+*                 V_{11}\in\R^{k\times k}
+*                 T_{21}\in\R^{n-k\times k}  V_{22}\in\R^{n-k\times n-k}
 *
-                           T(I,I) = ONE
+*                 Which means that we get the following systems we need to solve
 *
-*                          If necessary, compute all elements to the left
+*                 X_{11}*T_{11}                 = alpha V_{11}
+*                 X_{21}*T_{11} + X_{22}*T_{21} = alpha V_{21}
+*                 X_{22}*T_{22}                 = alpha V_{22}
 *
-                           IF (I.NE.1) THEN
-                              DO J = I-1, 1, -1
-                                 TMP = V(I,J)
-                                 DO K = I, J+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 We compute X_{22} since this will be used to help compute
+*                 X_{21}.
 *
-*                       For each row of T
+*                 Solve X_{22}*T_{22} = alpha V_{22}
 *
-                        DO I = N, 1, -1
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+     $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
 *
-*                          Compute the rightmost component of the row
+*                 We solve the system
 *
-                           T(I,I) = V(I,I)
+*                 X_{21}*T_{11} + X_{22}*T_{21} = alpha V_{21}
 *
-*                          If necessary, compute all elements to the left
+*                 Our final result will be stored in T_{21}, so we can use
+*                 this as a temporary workspace
 *
-                           IF (I.NE.1) THEN
-                              DO J = I-1, 1, -1
-                                 TMP = V(I,J)
-                                 DO K = I, J+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-*                 .NOT.TUNIT
-                  ELSE
-                     IF (VUNIT) THEN
+*                 T_{21} = X_{22}*T_{21} (TRMM)
 *
-*                       For each row of T
+                  CALL DTRMM('Left', UPLO, 'No Transpose',
+     $                  'Non-Unit', N-K, K, NEG_ONE, T(K+1,K+1), LDT,
+     $                  T(K+1,1), LDT)
 *
-                        DO I = N, 1, -1
+*                 T_{21} = T_{21} + alpha V_{21}
 *
-*                          Compute the rightmost component of the row
+                  DO I = K+1, N
+                     DO J = 1, K
+                        T(I,J) = T(I,J) + ALPHA * V(I,J)
+                     END DO
+                  END DO
 *
-                           T(I,I) = ONE / T(I,I)
+*                 Solve X_{21}*T_{11} = T_{21}  (TRSM)
 *
-*                          If necessary, compute all elements to the left
+                  CALL DTRSM('Right', UPLO, 'No Transpose', DIAGT,
+     $                  N-K, K, ONE, T, LDT, T(K+1,1), LDT)
 *
-                           IF (I.NE.1) THEN
-                              DO J = I-1, 1, -1
-                                 TMP = V(I,J)
-                                 DO K = I, J+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
-                              END DO
-                           END IF
-                        END DO
-*                    .NOT.VUNIT
-                     ELSE
+*                 Solve X_{11}*T_{11} = alpha V_{11}
 *
-*                       For each row of T
-*
-                        DO I = N, 1, -1
-*
-*                          Compute the rightmost component of the row
-*
-                           T(I,I) = V(I,I) / T(I,I)
-*
-*                          If necessary, compute all elements to the left
-*
-                           IF (I.NE.1) THEN
-                              DO J = I-1, 1, -1
-                                 TMP = V(I,J)
-                                 DO K = I, J+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
-                              END DO
-                           END IF
-                        END DO
-                     END IF
-                  END IF
+                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+     $                  ALPHA, T, LDT, V, LDV)
                END IF
             END IF
          END IF
