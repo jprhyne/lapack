@@ -354,7 +354,7 @@ DLASRC = \
    dlatbs.o dlatdf.o dlatps.o dlatrd.o dlatrs.o dlatrs3.o dlatrz.o dlauu2.o \
    dlauum.o dopgtr.o dopmtr.o dorg2l.o dorg2r.o \
    dorgkr.o dorgrk.o dorgkl.o dorglk.o \
-   dlumm.o dlusm.o dtrtrm.o dtrtrms.o dtrmmoop.o dtrmmoop_lvl2.o dtrmvoop.o \
+   dlumm.o dlusm.o dtrtrm.o dtrtrms.o dtrtrms_lvl2.o dtrmmoop.o dtrmmoop_lvl2.o dtrmvoop.o \
    dorgbr.o dorghr.o dorgl2.o dorglq.o dorgql.o dorgqr.o dorgr2.o \
    dorgrq.o dorgtr.o dorgtsqr.o dorgtsqr_row.o dorm2l.o dorm2r.o dorm22.o \
    dormbr.o dormhr.o dorml2.o dormlq.o dormql.o dormqr.o dormr2.o \
