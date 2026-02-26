@@ -1,4 +1,4 @@
-*> \brief \b CTRTRMS solves the system XT = op(V) or TX = op(V) in place where all matrices are the same kind of triangular
+*> \brief \b CTRTRSM solves the system XT = op(V) or TX = op(V) in place where all matrices are the same kind of triangular
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -8,7 +8,7 @@
 *  Definition:
 *  ===========
 *
-*     SUBROUTINE CTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N,
+*     SUBROUTINE CTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, N,
 *    $            T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..
@@ -24,7 +24,7 @@
 *>
 *> \verbatim
 *>
-*> CTRTRMS solves one of the following systems for X
+*> CTRTRSM solves one of the following systems for X
 *>
 *>       T * X = op(V)
 *>                      or
@@ -156,7 +156,7 @@
 *> \author NAG Ltd.
 *
 *  =====================================================================
-      SUBROUTINE CTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N,
+      SUBROUTINE CTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, N,
      $            T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..

@@ -1,4 +1,4 @@
-*> \brief \b DTRTRM computes an in place triangular-triangular matrix product
+*> \brief \b DTRTRMM computes an in place triangular-triangular matrix product
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -8,7 +8,7 @@
 *  Definition:
 *  ===========
 *
-*     RECURSIVE SUBROUTINE DTRTRM(SIDE, UPLO, TRANSV, DIAGT, DIAGV,
+*     RECURSIVE SUBROUTINE DTRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV,
 *    $                        N, ALPHA, T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..
@@ -25,7 +25,7 @@
 *>
 *> \verbatim
 *>
-*> DTRTRM performs one  of the matrix-matrix operations
+*> DTRTRMM performs one  of the matrix-matrix operations
 *>
 *>       T = \alpha op(V) * T
 *>                      or
@@ -165,7 +165,7 @@
 *
 *  =====================================================================
 c     Cost: 2/21 * (3n^3 + 7n^2 - 10) + 2
-      RECURSIVE SUBROUTINE DTRTRM(SIDE, UPLO, TRANSV, DIAGT, DIAGV,
+      RECURSIVE SUBROUTINE DTRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV,
      $                        N, ALPHA, T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..
@@ -567,12 +567,12 @@ c     Cost: 2/21 * (3n^3 + 7n^2 - 10) + 2
 *
 *        Compute T_{11} recursively
 *
-         CALL DTRTRM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, K, ALPHA,
+         CALL DTRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, K, ALPHA,
      $         T, LDT, V, LDV)
 *
 *        Compute T_{22} recursively
 *
-         CALL DTRTRM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, N-K, ALPHA,
+         CALL DTRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, N-K, ALPHA,
      $         T(K+1, K+1), LDT, V(K+1, K+1), LDV)
 
       END SUBROUTINE

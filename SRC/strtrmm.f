@@ -1,4 +1,4 @@
-*> \brief \b STRTRM computes an in place triangular-triangular matrix product
+*> \brief \b STRTRMM computes an in place triangular-triangular matrix product
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -8,7 +8,7 @@
 *  Definition:
 *  ===========
 *
-*     RECURSIVE SUBROUTINE STRTRM(SIDE, UPLO, TRANSV, DIAGT, DIAGV,
+*     RECURSIVE SUBROUTINE STRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV,
 *    $                        N, ALPHA, T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..
@@ -25,7 +25,7 @@
 *>
 *> \verbatim
 *>
-*> STRTRM performs one  of the matrix-matrix operations
+*> STRTRMM performs one  of the matrix-matrix operations
 *>
 *>       T = \alpha op(V) * T
 *>                      or
@@ -164,7 +164,7 @@
 *> \author NAG Ltd.
 *
 *  =====================================================================
-      RECURSIVE SUBROUTINE STRTRM(SIDE, UPLO, TRANSV, DIAGT, DIAGV,
+      RECURSIVE SUBROUTINE STRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV,
      $                        N, ALPHA, T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..
@@ -566,12 +566,12 @@
 *
 *        Compute T_{11} recursively
 *
-         CALL STRTRM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, K, ALPHA,
+         CALL STRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, K, ALPHA,
      $         T, LDT, V, LDV)
 *
 *        Compute T_{22} recursively
 *
-         CALL STRTRM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, N-K, ALPHA,
+         CALL STRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, N-K, ALPHA,
      $         T(K+1, K+1), LDT, V(K+1, K+1), LDV)
 
       END SUBROUTINE

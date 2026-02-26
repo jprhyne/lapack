@@ -1,4 +1,4 @@
-*> \brief \b ZTRTRMS solves the system XT = op(V) or TX = op(V) in place where all matrices are the same kind of triangular
+*> \brief \b ZTRTRSM solves the system XT = op(V) or TX = op(V) in place where all matrices are the same kind of triangular
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -8,7 +8,7 @@
 *  Definition:
 *  ===========
 *
-*     SUBROUTINE ZTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N,
+*     SUBROUTINE ZTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, N,
 *    $            T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..
@@ -24,7 +24,7 @@
 *>
 *> \verbatim
 *>
-*> ZTRTRMS solves one of the following systems for X
+*> ZTRTRSM solves one of the following systems for X
 *>
 *>       T * X = op(V)
 *>                      or
@@ -156,7 +156,7 @@
 *> \author NAG Ltd.
 *
 *  =====================================================================
-      SUBROUTINE ZTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N,
+      SUBROUTINE ZTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, N,
      $            T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..

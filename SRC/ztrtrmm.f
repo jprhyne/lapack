@@ -1,4 +1,4 @@
-*> \brief \b CTRTRM computes an in place triangular-triangular matrix product
+*> \brief \b ZTRTRMM computes an in place triangular-triangular matrix product
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -8,16 +8,16 @@
 *  Definition:
 *  ===========
 *
-*     RECURSIVE SUBROUTINE CTRTRM(SIDE, UPLO, TRANSV, DIAGT, DIAGV,
+*     RECURSIVE SUBROUTINE ZTRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV,
 *    $                        N, ALPHA, T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..
 *        INTEGER           N, LDT, LDV
 *        CHARACTER         SIDE, UPLO, TRANSV, DIAGT, DIAGV
-*        COMPLEX           ALPHA
+*        COMPLEX*16        ALPHA
 *        ..
 *        .. Array Arguments ..
-*        COMPLEX           T(LDT,*), V(LDV,*)
+*        COMPLEX*16        T(LDT,*), V(LDV,*)
 *        ..
 *
 *> \par Purpose:
@@ -25,7 +25,7 @@
 *>
 *> \verbatim
 *>
-*> CTRTRM performs one  of the matrix-matrix operations
+*> ZTRTRMM performs one  of the matrix-matrix operations
 *>
 *>       T = \alpha op(V) * T
 *>                      or
@@ -42,7 +42,7 @@
 *> \param[in] SIDE
 *> \verbatim
 *>          SIDE is CHARACTER*1
-*>           On entry, SIDE specifies whether op(V) multiplies T from
+*>           On entry, SIDE specifies whether T multiplies op(V) from
 *>           the left or right as follows:
 *>
 *>             SIDE = 'L' or 'l'    T = \alpha T * op(V)
@@ -105,7 +105,7 @@
 *>
 *> \param[in] ALPHA
 *> \verbatim
-*>          ALPHA is COMPLEX.
+*>          ALPHA is COMPLEX*16.
 *>           On entry, ALPHA specifies the scalar alpha. When alpha is
 *>           zero then T and V are not referenced, and T and V need not
 *>           be set before entry.
@@ -113,7 +113,7 @@
 *>
 *> \param[in] T
 *> \verbatim
-*>          T is COMPLEX array, dimension ( LDT, N )
+*>          T is COMPLEX*16 array, dimension ( LDT, N )
 *>           Before entry with UPLO = 'U' or 'u', the leading k-by-k
 *>           upper triangular part of the array T must contain the upper
 *>           triangular matrix and the strictly lower triangular part of
@@ -135,7 +135,7 @@
 *>
 *> \param[in] V
 *> \verbatim
-*>          V is COMPLEX array, dimension ( LDV, N )
+*>          V is COMPLEX*16 array, dimension ( LDV, N )
 *>           Before entry with UPLO = 'U' or 'u', the leading k-by-k
 *>           upper triangular part of the array op(V) must contain the upper
 *>           triangular matrix and the strictly lower triangular part of
@@ -164,16 +164,16 @@
 *> \author NAG Ltd.
 *
 *  =====================================================================
-      RECURSIVE SUBROUTINE CTRTRM(SIDE, UPLO, TRANSV, DIAGT, DIAGV,
+      RECURSIVE SUBROUTINE ZTRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV,
      $                        N, ALPHA, T, LDT, V, LDV)
 *
 *     .. Scalar Arguments ..
       INTEGER           N, LDT, LDV
       CHARACTER         SIDE, UPLO, TRANSV, DIAGT, DIAGV
-      COMPLEX           ALPHA
+      COMPLEX*16        ALPHA
 *     ..
 *     .. Array Arguments ..
-      COMPLEX           T(LDT,*), V(LDV,*)
+      COMPLEX*16        T(LDT,*), V(LDV,*)
 *     ..
 *
 *  =====================================================================
@@ -183,7 +183,7 @@
       EXTERNAL          LSAME
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          CTRMM, CTRMMOOP, CLASET
+      EXTERNAL          ZTRMM, ZTRMMOOP, ZLASET
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC         CONJG
@@ -193,8 +193,8 @@
       LOGICAL           TLEFT, TUPPER, VTRANS, VUNIT, TUNIT, CONJV
 *     ..
 *     .. Local Parameters ..
-      COMPLEX          ONE, ZERO
-      PARAMETER(ONE=(1.0E+0,0.E+0), ZERO=(0.0E+0,0.0E+0))
+      COMPLEX*16       ONE, ZERO
+      PARAMETER(ONE=(1.0D+0,0.D+0), ZERO=(0.0D+0,0.0D+0))
 *     ..
 *
 *     Beginning of Executable Statements
@@ -206,7 +206,7 @@
 *
 *        If ALPHA is 0, then we are just setting T to be the 0 matrix
 *
-         CALL CLASET(UPLO, N, N, ZERO, ZERO, T, LDT)
+         CALL ZLASET(UPLO, N, N, ZERO, ZERO, T, LDT)
          RETURN
       END IF
       TUNIT = LSAME(DIAGT, 'U')
@@ -273,17 +273,17 @@
 *              Computing T_{11} and T_{22} are just recursive calls to this
 *              routine, but we can break down computing T_{12} as follows
 *
-*              T_{12} = \alpha T_{12}*V_{22}**T          (CTRMM)
-*              T_{12} = \alpha T_{11}*V_{21}**T + T_{12} (CTRMMOOP)
+*              T_{12} = \alpha T_{12}*V_{22}**T          (ZTRMM)
+*              T_{12} = \alpha T_{11}*V_{21}**T + T_{12} (ZTRMMOOP)
 *
 *              T_{12} = \alpha T_{12}*V_{22}**T
 *
-               CALL CTRMM('Right', 'Lower', TRANSV, DIAGV, K,
+               CALL ZTRMM('Right', 'Lower', TRANSV, DIAGV, K,
      $                  N-K, ALPHA, V(K+1, K+1), LDV, T(1, K+1), LDT)
 *
 *              T_{12} = \alpha T_{11}*V_{21}**T + T_{12}
 *
-               CALL CTRMMOOP('Left', UPLO, 'No Transpose',
+               CALL ZTRMMOOP('Left', UPLO, 'No Transpose',
      $                  TRANSV, DIAGT, K, N-K, ALPHA, T, LDT,
      $                  V(K+1, 1), LDV, ONE, T(1, K+1), LDT)
             ELSE
@@ -310,17 +310,17 @@
 *              Computing T_{11} and T_{22} are just recursive calls to this
 *              routine, but we can break down computing T_{12} as follows
 *
-*              T_{12} = \alpha T_{12}*V_{22}          (CTRMM)
-*              T_{12} = \alpha T_{11}*V_{12} + T_{12} (CTRMMOOP)
+*              T_{12} = \alpha T_{12}*V_{22}          (ZTRMM)
+*              T_{12} = \alpha T_{11}*V_{12} + T_{12} (ZTRMMOOP)
 *
 *              T_{12} = \alpha T_{12}*V_{22}
 *
-               CALL CTRMM('Right', 'Upper', TRANSV, DIAGV, K,
+               CALL ZTRMM('Right', 'Upper', TRANSV, DIAGV, K,
      $                  N-K, ALPHA, V(K+1, K+1), LDV, T(1, K+1), LDT)
 *
 *              T_{12} = \alpha T_{11}*V_{21}**T + T_{12}
 *
-               CALL CTRMMOOP('Left', UPLO, 'No Transpose',
+               CALL ZTRMMOOP('Left', UPLO, 'No Transpose',
      $                  TRANSV, DIAGT, K, N-K, ALPHA, T, LDT,
      $                  V(1, K+1), LDV, ONE, T(1, K+1), LDT)
             END IF
@@ -352,17 +352,17 @@
 *              Computing T_{11} and T_{22} are just recursive calls to this
 *              routine, but we can break down computing T_{12} as follows
 *
-*              T_{12} = \alpha V_{11}**T*T_{12}          (CTRMM)
-*              T_{12} = \alpha V_{21}**T*T_{22} + T_{12} (CTRMMOOP)
+*              T_{12} = \alpha V_{11}**T*T_{12}          (ZTRMM)
+*              T_{12} = \alpha V_{21}**T*T_{22} + T_{12} (ZTRMMOOP)
 *
 *              T_{12} = \alpha V_{11}**T*T_{12}
 *
-               CALL CTRMM('Left', 'Lower', TRANSV, DIAGV, K,
+               CALL ZTRMM('Left', 'Lower', TRANSV, DIAGV, K,
      $                  N-K, ALPHA, V, LDV, T(1, K+1), LDT)
 *
 *              T_{12} = \alpha V_{21}**T*T_{22} + T_{12}
 *
-               CALL CTRMMOOP('Right', UPLO, 'No Transpose',
+               CALL ZTRMMOOP('Right', UPLO, 'No Transpose',
      $                  TRANSV, DIAGT, K, N-K, ALPHA, T(K+1, K+1),
      $                  LDT, V(K+1, 1), LDV, ONE, T(1, K+1), LDT)
             ELSE
@@ -389,17 +389,17 @@
 *              Computing T_{11} and T_{22} are just recursive calls to this
 *              routine, but we can break down computing T_{12} as follows
 *
-*              T_{12} = \alpha V_{11}*T_{12}          (CTRMM)
-*              T_{12} = \alpha V_{12}*T_{22} + T_{12} (CTRMMOOP)
+*              T_{12} = \alpha V_{11}*T_{12}          (ZTRMM)
+*              T_{12} = \alpha V_{12}*T_{22} + T_{12} (ZTRMMOOP)
 *
 *              T_{12} = \alpha V_{11}*T_{12}
 *
-               CALL CTRMM('Left', 'Upper', TRANSV, DIAGV, K,
+               CALL ZTRMM('Left', 'Upper', TRANSV, DIAGV, K,
      $                  N-K, ALPHA, V, LDV, T(1, K+1), LDT)
 *
-*              T_{12} = \alpha V_{12}*T_{22} + T_{12} (CTRMMOOP)
+*              T_{12} = \alpha V_{12}*T_{22} + T_{12} (ZTRMMOOP)
 *
-               CALL CTRMMOOP('Right', UPLO, 'No Transpose',
+               CALL ZTRMMOOP('Right', UPLO, 'No Transpose',
      $                  TRANSV, DIAGT, K, N-K, ALPHA, T(K+1, K+1),
      $                  LDT, V(1, K+1), LDV, ONE, T(1, K+1), LDT)
             END IF
@@ -436,17 +436,17 @@
 *              Computing T_{11} and T_{22} are just recursive calls to this
 *              routine, but we can break down computing T_{21} as follows
 *
-*              T_{21} = \alpha T_{21}*V_{11}**T          (CTRMM)
-*              T_{21} = \alpha T_{22}*V_{12}**T + T_{21} (CTRMMOOP)
+*              T_{21} = \alpha T_{21}*V_{11}**T          (ZTRMM)
+*              T_{21} = \alpha T_{22}*V_{12}**T + T_{21} (ZTRMMOOP)
 *
 *              T_{21} = \alpha T_{21}*V_{11}**T
 *
-               CALL CTRMM('Right', 'Upper', TRANSV, DIAGV, N-K,
+               CALL ZTRMM('Right', 'Upper', TRANSV, DIAGV, N-K,
      $                  K, ALPHA, V, LDV, T(K+1, 1), LDT)
 *
 *              T_{21} = \alpha T_{22}*V_{12}**T + T_{21}
 *
-               CALL CTRMMOOP('Left', UPLO, 'No Transpose',
+               CALL ZTRMMOOP('Left', UPLO, 'No Transpose',
      $                  TRANSV, DIAGT, N-K, K, ALPHA, T(K+1, K+1),
      $                  LDT, V(1, K+1), LDV, ONE, T(K+1, 1), LDT)
             ELSE
@@ -473,17 +473,17 @@
 *              Computing T_{11} and T_{22} are just recursive calls to this
 *              routine, but we can break down computing T_{21} as follows
 *
-*              T_{21} = \alpha T_{21}*V_{11}          (CTRMM)
-*              T_{21} = \alpha T_{22}*V_{21} + T_{21} (CTRMMOOP)
+*              T_{21} = \alpha T_{21}*V_{11}          (ZTRMM)
+*              T_{21} = \alpha T_{22}*V_{21} + T_{21} (ZTRMMOOP)
 *
 *              T_{21} = \alpha T_{21}*V_{11}
 *
-               CALL CTRMM('Right', 'Lower', TRANSV, DIAGV, N-K,
+               CALL ZTRMM('Right', 'Lower', TRANSV, DIAGV, N-K,
      $                  K, ALPHA, V, LDV, T(K+1, 1), LDT)
 *
 *              T_{21} = \alpha T_{22}*V_{12} + T_{21}
 *
-               CALL CTRMMOOP('Left', UPLO, 'No Transpose',
+               CALL ZTRMMOOP('Left', UPLO, 'No Transpose',
      $                  TRANSV, DIAGT, N-K, K, ALPHA, T(K+1, K+1),
      $                  LDT, V(K+1, 1), LDV, ONE, T(K+1, 1), LDT)
             END IF
@@ -515,17 +515,17 @@
 *              Computing T_{11} and T_{22} are just recursive calls to this
 *              routine, but we can break down computing T_{21} as follows
 *
-*              T_{21} = \alpha V_{22}**T*T_{21}          (CTRMM)
-*              T_{21} = \alpha V_{12}**T*T_{11} + T_{21} (CTRMMOOP)
+*              T_{21} = \alpha V_{22}**T*T_{21}          (ZTRMM)
+*              T_{21} = \alpha V_{12}**T*T_{11} + T_{21} (ZTRMMOOP)
 *
 *              T_{21} = \alpha V_{22}**T*T_{21}
 *
-               CALL CTRMM('Left', 'Upper', TRANSV, DIAGV, N-K, K,
+               CALL ZTRMM('Left', 'Upper', TRANSV, DIAGV, N-K, K,
      $                  ALPHA, V(K+1, K+1), LDV, T(K+1, 1), LDT)
 *
 *              T_{21} = \alpha V_{12}**T*T_{11} + T_{21}
 *
-               CALL CTRMMOOP('Right', UPLO, 'No Transpose',
+               CALL ZTRMMOOP('Right', UPLO, 'No Transpose',
      $                  TRANSV, DIAGT, N-K, K, ALPHA, T, LDT,
      $                  V(1, K+1), LDV, ONE, T(K+1, 1), LDT)
             ELSE
@@ -552,17 +552,17 @@
 *              Computing T_{11} and T_{22} are just recursive calls to this
 *              routine, but we can break down computing T_{12} as follows
 *
-*              T_{21} = \alpha V_{22}*T_{21}          (CTRMM)
-*              T_{21} = \alpha V_{12}*T_{11} + T_{21} (CTRMMOOP)
+*              T_{21} = \alpha V_{22}*T_{21}          (ZTRMM)
+*              T_{21} = \alpha V_{12}*T_{11} + T_{21} (ZTRMMOOP)
 *
 *              T_{21} = \alpha V_{22}*T_{12}
 *
-               CALL CTRMM('Left', 'Lower', TRANSV, DIAGV, N-K, K,
+               CALL ZTRMM('Left', 'Lower', TRANSV, DIAGV, N-K, K,
      $                  ALPHA, V(K+1, K+1), LDV, T(K+1, 1), LDT)
 *
 *              T_{21} = \alpha V_{12}*T_{11} + T_{21}
 *
-               CALL CTRMMOOP('Right', UPLO, 'No Transpose',
+               CALL ZTRMMOOP('Right', UPLO, 'No Transpose',
      $                  TRANSV, DIAGT, N-K, K, ALPHA, T, LDT,
      $                  V(K+1, 1), LDV, ONE, T(K+1, 1), LDT)
             END IF
@@ -574,11 +574,11 @@
 *
 *     Compute T_{11} recursively
 *
-      CALL CTRTRM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, K, ALPHA,
+      CALL ZTRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, K, ALPHA,
      $      T, LDT, V, LDV)
 *
 *     Compute T_{22} recursively
 *
-      CALL CTRTRM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, N-K, ALPHA,
+      CALL ZTRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, N-K, ALPHA,
      $      T(K+1, K+1), LDT, V(K+1, K+1), LDV)
       END SUBROUTINE

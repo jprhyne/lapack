@@ -1,4 +1,4 @@
-*> \brief \b DTRTRMS solves the system XT = op(V) or TX = op(V) in place where all matrices are the same kind of triangular
+*> \brief \b DTRTRSM solves the system XT = op(V) or TX = op(V) in place where all matrices are the same kind of triangular
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -8,7 +8,7 @@
 *  Definition:
 *  ===========
 *
-*     RECURSIVE SUBROUTINE DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV,
+*     RECURSIVE SUBROUTINE DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV,
 *    $            N, ALPHA, T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..
@@ -24,7 +24,7 @@
 *>
 *> \verbatim
 *>
-*> DTRTRMS solves one of the following systems for X
+*> DTRTRSM solves one of the following systems for X
 *>
 *>       T * X = alpha * op(V)
 *>                      or
@@ -162,7 +162,7 @@
 *> \author NAG Ltd.
 *
 *  =====================================================================
-      RECURSIVE SUBROUTINE DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV,
+      RECURSIVE SUBROUTINE DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV,
      $            N, ALPHA, T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..
@@ -200,7 +200,7 @@
 *        Terminating case
 *
          IF (N.EQ.1) THEN
-            CALL DTRTRMS_LVL2(SIDE, UPLO, TRANS, DIAGT, DIAGV,
+            CALL DTRTRSM_LVL2(SIDE, UPLO, TRANS, DIAGT, DIAGV,
      $            N, ALPHA, T, LDT, V, LDV)
             RETURN
          ELSE IF(N.LE.0) THEN
@@ -246,7 +246,7 @@
 *
 *                 Solve T_{22}*X_{22} = alpha V_{22}^\top
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
      $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
 *
 *                 We solve the system
@@ -274,9 +274,9 @@
                   CALL DTRSM('Left', UPLO, 'No Transpose', DIAGT,
      $                  K, N-K, ONE, T, LDT, T(1,K+1), LDT)
 *
-*                 Solve T_{11}*X_{11} = alpha V_{11}^\top  (TRTRMS)
+*                 Solve T_{11}*X_{11} = alpha V_{11}^\top  (TRTRSM)
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
      $                  ALPHA, T, LDT, V, LDV)
 *              .NOT.VTRANS
                ELSE
@@ -307,7 +307,7 @@
 *
 *                 Solve T_{22}*X_{22} = alpha V_{22}
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
      $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
 *
 *                 We solve the system
@@ -335,9 +335,9 @@
                   CALL DTRSM('Left', UPLO, 'No Transpose', DIAGT,
      $                  K, N-K, ONE, T, LDT, T(1,K+1), LDT)
 *
-*                 Solve T_{11}*X_{11} = alpha V_{11}  (TRTRMS)
+*                 Solve T_{11}*X_{11} = alpha V_{11}  (TRTRSM)
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
      $                  ALPHA, T, LDT, V, LDV)
                END IF
             ELSE
@@ -370,7 +370,7 @@
 *
 *                 Solve X_{11}*T_{11} = alpha V_{11}**T
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
      $                  ALPHA, T, LDT, V, LDV)
 *
 *                 We solve the system
@@ -401,7 +401,7 @@
 *
 *                 Solve T_{22}*X_{22} = alpha V_{22}^\top
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
      $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
                ELSE
 *
@@ -429,7 +429,7 @@
 *
 *                 Solve X_{11}*T_{11} = V_{11}
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
      $                  ALPHA, T, LDT, V, LDV)
 *
 *                 We solve the system
@@ -460,7 +460,7 @@
 *
 *                 Solve T_{22}*X_{22} = alpha V_{22}^\top
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
      $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
                END IF
             END IF
@@ -499,7 +499,7 @@
 *
 *                 Solve T_{11}*X_{11} = alpha V_{11}**T
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
      $                  ALPHA, T, LDT, V, LDV)
 *
 *                 We solve the system
@@ -530,7 +530,7 @@
 *
 *                 Solve T_{22}*X_{22} = alpha V_{22}**T
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
      $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
 *              .NOT.VTRANS
                ELSE
@@ -559,7 +559,7 @@
 *
 *                 Solve T_{11}*X_{11} = alpha V_{11}
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
      $                  ALPHA, T, LDT, V, LDV)
 *
 *                 We solve the system
@@ -590,7 +590,7 @@
 *
 *                 Solve T_{22}*X_{22} = alpha V_{22}
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
      $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
                END IF
             ELSE
@@ -623,7 +623,7 @@
 *
 *                 Solve X_{22}*T_{22} = alpha V_{22}**T
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
      $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
 *
 *                 We solve the system
@@ -654,7 +654,7 @@
 *
 *                 Solve X_{11}*T_{11} = alpha V_{11}**T
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
      $                  ALPHA, T, LDT, V, LDV)
                ELSE
 *
@@ -682,7 +682,7 @@
 *
 *                 Solve X_{22}*T_{22} = alpha V_{22}
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, N-K,
      $                  ALPHA, T(K+1,K+1), LDT, V(K+1,K+1), LDV)
 *
 *                 We solve the system
@@ -713,7 +713,7 @@
 *
 *                 Solve X_{11}*T_{11} = alpha V_{11}
 *
-                  CALL DTRTRMS(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
+                  CALL DTRTRSM(SIDE, UPLO, TRANS, DIAGT, DIAGV, K,
      $                  ALPHA, T, LDT, V, LDV)
                END IF
             END IF

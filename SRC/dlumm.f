@@ -88,7 +88,7 @@
 *>           be set before entry.
 *> \endverbatim
 *>
-*> \param[in] A
+*> \param[in,out] A
 *> \verbatim
 *>          A is DOUBLE PRECISION array, dimension ( LDA, N ) where
 *>           Before entry the leading n-by-n strictly upper triangular part of the array
