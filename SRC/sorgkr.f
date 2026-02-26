@@ -102,7 +102,7 @@
       LOGICAL           SOLVET
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          STRMM, STRTRM, SLUMM
+      EXTERNAL          STRMM, STRTRMM SLUMM
 *     ..
 *     .. External Functions ..
       LOGICAL           LSAME
@@ -140,10 +140,10 @@
 *     Compute T = T*V_1**T or solve T*X = V_1' for X overwritting T
 *
       IF (SOLVET) THEN
-         CALL STRTRMS('Left', 'Upper', 'Transpose', 'Non-unit',
+         CALL STRTRSM('Left', 'Upper', 'Transpose', 'Non-unit',
      $               'Unit', N, Q, LDQ, Q, LDQ)
       ELSE
-         CALL STRTRM('Left', 'Upper', 'Transpose', 'Non-unit',
+         CALL STRTRMM('Left', 'Upper', 'Transpose', 'Non-unit',
      $               'Unit', N, ONE, Q, LDQ, Q, LDQ)
       END IF
 *

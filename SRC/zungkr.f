@@ -85,7 +85,7 @@
 *  =====================================================================
 *
 *     .. External Subroutines ..
-      EXTERNAL          ZTRMM, ZTRTRM, ZLUMM
+      EXTERNAL          ZTRMM, ZTRTRMM ZLUMM
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MIN
@@ -123,7 +123,7 @@
 *
 *     Compute T = T*V_1**H
 *
-      CALL ZTRTRM('Left', 'Upper', 'Conjugate Transpose',
+      CALL ZTRTRMM('Left', 'Upper', 'Conjugate Transpose',
      $            'Non-unit', 'Unit', N, ONE, Q, LDQ, Q, LDQ)
 *
 *     Compute Q = -VT. This means that we need to break apart

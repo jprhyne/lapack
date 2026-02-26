@@ -119,7 +119,7 @@
       LOGICAL           SOLVET
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          STRMM, STRTRM, SLUMM
+      EXTERNAL          STRMM, STRTRMM SLUMM
 *     ..
 *     .. External Functions ..
       LOGICAL           LSAME
@@ -155,10 +155,10 @@
 *     Compute T = V_1'*T
 *
       IF (SOLVET) THEN
-         CALL STRTRMS('Right', 'Upper', 'Transpose', 'Non-Unit',
+         CALL STRTRSM('Right', 'Upper', 'Transpose', 'Non-Unit',
      $            'Unit', M, ONE, Q(1,N-M+1), LDQ, Q(1,N-M+1), LDQ)
       ELSE
-         CALL STRTRM('Right', 'Upper', 'Transpose', 'Non-Unit',
+         CALL STRTRMM('Right', 'Upper', 'Transpose', 'Non-Unit',
      $            'Unit', M, ONE, Q(1,N-M+1), LDQ, Q(1,N-M+1), LDQ)
       END IF
 *

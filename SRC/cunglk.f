@@ -90,7 +90,7 @@
       INTEGER           I, J
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          CTRMM, CTRTRM, CLUMM
+      EXTERNAL          CTRMM, CTRTRMM CLUMM
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC         MIN
@@ -119,7 +119,7 @@
 *
 *     Compute T = V_1'*T
 *
-      CALL CTRTRM('Right', 'Lower', 'Conjugate Transpose',
+      CALL CTRTRMM('Right', 'Lower', 'Conjugate Transpose',
      $         'Non-unit', 'Unit', M, ONE, Q, LDQ, Q, LDQ)
 *
 *     Compute Q = -TV. This means that we need to break apart

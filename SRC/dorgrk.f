@@ -119,7 +119,7 @@
       LOGICAL           SOLVET
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          DTRMM, DTRTRM, DLUMM
+      EXTERNAL          DTRMM, DTRTRMM DLUMM
 *     ..
 *     .. External Functions ..
       LOGICAL           LSAME
@@ -155,10 +155,10 @@
 *     Compute T = V_1'*T or solve X*T = V_1'
 *
       IF (SOLVET) THEN
-         CALL DTRTRMS('Right', 'Upper', 'Transpose', 'Non-unit',
+         CALL DTRTRSM('Right', 'Upper', 'Transpose', 'Non-unit',
      $            'Unit', M, ONE, Q(1, N-M+1), LDQ, Q(1, N-M+1), LDQ)
       ELSE
-         CALL DTRTRM('Right', 'Upper', 'Transpose', 'Non-Unit',
+         CALL DTRTRMM('Right', 'Upper', 'Transpose', 'Non-Unit',
      $            'Unit', M, ONE, Q(1,N-M+1), LDQ, Q(1,N-M+1), LDQ)
       END IF
 *

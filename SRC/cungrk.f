@@ -108,7 +108,7 @@
       INTEGER           I, J
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          CTRMM, CTRTRM, CLUMM
+      EXTERNAL          CTRMM, CTRTRMM CLUMM
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC         MIN
@@ -137,7 +137,7 @@
 *
 *     Compute T = V_1'*T
 *
-      CALL CTRTRM('Right', 'Upper', 'Conjugate Transpose',
+      CALL CTRTRMM('Right', 'Upper', 'Conjugate Transpose',
      $         'Non-Unit', 'Unit', M, ONE, Q(1,N-M+1), LDQ, Q(1,N-M+1),
      &         LDQ)
 *

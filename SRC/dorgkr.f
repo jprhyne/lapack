@@ -102,7 +102,7 @@
       LOGICAL           SOLVET
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          DTRMM, DTRTRM, DTRTRI, DLUMM
+      EXTERNAL          DTRMM, DTRTRMM DTRTRI, DLUMM
 *     ..
 *     .. External Functions ..
       LOGICAL           LSAME
@@ -140,10 +140,10 @@
 *     Compute T = T*V_1**T or solve TX = V_1**T for X overwriting T
 *
       IF (SOLVET) THEN
-         CALL DTRTRMS('Left', 'Upper', 'Transpose', 'Non-Unit',
+         CALL DTRTRSM('Left', 'Upper', 'Transpose', 'Non-Unit',
      $                'Unit', N, ONE, Q, LDQ, Q, LDQ)
       ELSE
-         CALL DTRTRM('Left', 'Upper', 'Transpose', 'Non-unit',
+         CALL DTRTRMM('Left', 'Upper', 'Transpose', 'Non-unit',
      $               'Unit', N, ONE, Q, LDQ, Q, LDQ)
       END IF
 *

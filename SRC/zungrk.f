@@ -108,7 +108,7 @@
       INTEGER           I, J
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          ZTRMM, ZTRTRM, ZLUMM
+      EXTERNAL          ZTRMM, ZTRTRMM ZLUMM
 *     ..
 *     .. Intrinsic Functions..
       INTRINSIC         MIN
@@ -137,7 +137,7 @@
 *
 *     Compute T = V_1'*T
 *
-      CALL ZTRTRM('Right', 'Upper', 'Conjugate Transpose',
+      CALL ZTRTRMM('Right', 'Upper', 'Conjugate Transpose',
      $         'Non-Unit', 'Unit', M, ONE, Q(1,N-M+1), LDQ, Q(1,N-M+1),
      &         LDQ)
 *
