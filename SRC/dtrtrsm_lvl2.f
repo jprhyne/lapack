@@ -1,4 +1,4 @@
-*> \brief \b DTRTRMS solves the system XT = op(V) or TX = op(V) in place where all matrices are the same kind of triangular
+*> \brief \b DTRTRSM solves the system XT = op(V) or TX = op(V) in place where all matrices are the same kind of triangular
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -8,7 +8,7 @@
 *  Definition:
 *  ===========
 *
-*     SUBROUTINE DTRTRMS_LVL2(SIDE, UPLO, TRANS, DIAGT, DIAGV,
+*     SUBROUTINE DTRTRSM_LVL2(SIDE, UPLO, TRANS, DIAGT, DIAGV,
 *    $            N, ALPHA, T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..
@@ -25,7 +25,7 @@
 *>
 *> \verbatim
 *>
-*> DTRTRMS solves one of the following systems for X
+*> DTRTRSM solves one of the following systems for X
 *>
 *>       T * X = alpha op(V)
 *>                      or
@@ -163,7 +163,7 @@
 *> \author NAG Ltd.
 *
 *  =====================================================================
-      SUBROUTINE DTRTRMS_LVL2(SIDE, UPLO, TRANS, DIAGT, DIAGV,
+      SUBROUTINE DTRTRSM_LVL2(SIDE, UPLO, TRANS, DIAGT, DIAGV,
      $            N, ALPHA, T, LDT, V, LDV)
 *
 *        .. Scalar Arguments ..
