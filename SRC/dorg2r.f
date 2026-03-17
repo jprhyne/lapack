@@ -168,24 +168,31 @@
          CALL DLASET('All', M, N, ZERO, ONE, A, LDA)
          RETURN
       END IF
-      ! Apply the first (kth) reflector to the assumed identity matrix from
-      ! the left. Note that if n=k, we do nothing
+*
+*     Apply the first (kth) reflector to the assumed identity matrix from
+*     the left. Note that if n=k, we do nothing
+*
       CALL DLARF0C2('Identity', 'Left', 'Forward', 'Columnwise',
      $   M-K+1, N-K, TAU(K), A(K+1,K), 1, A(K,K+1), LDA)
-
-      ! Now we compute the 1st non-zero of H, which is given by
-      ! A(k:m,k) = e_k - tau*v_k
-      ! Analagous to orgkr for n=1 (but T is not used as it is a scalar)
+*
+*     Now we compute the 1st non-zero column of H, which is given by
+*     A(k:m,k) = e_k - tau*v_k
+*     Analagous to orgkr for n=1 (but T is not used as it is a scalar)
+*
       A(K,K) = ONE - TAU(K)
       CALL DSCAL(M-K, -TAU(K), A(K+1,K), 1)
-      ! Now we apply columns 1:k-1 of V to A
+*
+*     Now we apply columns 1:k-1 of V to A
+*
       IF( K.GT.1 ) THEN
          DO J = K-1, 1, -1
            CALL DLARF0C2('General', 'Left', 'Forward',
      $       'Columnwise',  M-J+1, N-J, TAU(J), A(J+1,J), 1,
      $       A(J,J+1), LDA)
-           ! A(k:m,k) = e_k - tau*v_k
-           ! Analagous to orgkr for n=1 (but T is not used as it is a scalar)
+*
+*          A(i:m,i) = e_i - tau*v_i
+*          Analagous to orgkr for n=1 (but T is not used as it is a scalar)
+*
            A(J,J) = ONE - TAU(J)
            CALL DSCAL(M-J, -TAU(J), A(J+1,J), 1)
          END DO
