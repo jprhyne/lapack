@@ -258,8 +258,9 @@
 *
 *                 T_{12} = -T_{12}*X_{22}        (TRMM)
 *
-                  CALL DTRMM('Right', UPLO, 'No Transpose', 'Non-unit',
-     $                  K, N-K, NEG_ONE, T(K+1,K+1), LDT, T(1,K+1), LDT)
+                  CALL DTRMM('Right', UPLO, 'No Transpose',
+     $                  'Non-unit', K, N-K, NEG_ONE, T(K+1,K+1), LDT,
+     $                  T(1,K+1), LDT)
 *
 *                 T_{12} = T_{12} + alpha V_{21}^\top
 *
@@ -319,8 +320,9 @@
 *
 *                 T_{12} = -T_{12}*X_{22}        (TRMM)
 *
-                  CALL DTRMM('Right', UPLO, 'No Transpose', 'Non-unit',
-     $                  K, N-K, NEG_ONE, T(K+1,K+1), LDT, T(1,K+1), LDT)
+                  CALL DTRMM('Right', UPLO, 'No Transpose',
+     $                  'Non-unit', K, N-K, NEG_ONE, T(K+1,K+1), LDT,
+     $                  T(1,K+1), LDT)
 *
 *                 T_{12} = T_{12} + alpha V_{12}
 *
