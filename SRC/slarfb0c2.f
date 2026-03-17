@@ -223,6 +223,12 @@
       C2I = LSAME(C2JOB, 'I')
       TSOLVE = LSAME(APPLYT, 'S')
 *
+*     Quick exit if possible
+*
+      IF (M.EQ.0.OR.N.EQ.0.OR.K.EQ.0) THEN
+         RETURN
+      END IF
+*
 *     Determine which of the 4 modes are using.
 *     QR is when we store the reflectors column by column and have the
 *     'first' reflector stored in the first column
