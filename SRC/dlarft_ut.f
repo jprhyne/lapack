@@ -165,8 +165,8 @@
 *> \endverbatim
 *>
 *  =====================================================================
-      SUBROUTINE DLARFT_UT( DIRECT, STOREV, APPLYT, N, K, V, LDV, TAU,
-     $            T, LDT )
+      SUBROUTINE DLARFT_UT( DIRECT, STOREV, APPLYT, N, K, V, LDV,
+     $            TAU, T, LDT )
 *
 *  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
@@ -199,7 +199,8 @@
 *
 *     .. External Subroutines ..
 *
-      EXTERNAL          DST3RK, DSYRK, DTRTRI, DLARFT_LVL2, XERBLA
+      EXTERNAL          DST3RK, DSYRK, DTRTRI, DLARFT_LVL2,
+     $                  XERBLA
 *
 *     .. External Functions..
 *
