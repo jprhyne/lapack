@@ -1,0 +1,326 @@
+*> \brief \b DORG1R generates either all or part of a householder
+*>    reflector matrix H = I - \tau v*v**H
+*
+*  =========== DOCUMENTATION ===========
+*
+* Online html documentation available at
+*            http://www.netlib.org/lapack/explore-html/
+*
+*  Definition:
+*  ===========
+*
+*     SUBROUTINE DLARF0C2( C2JOB, SIDE, DIRECT, STOREV, M, N, TAU,
+*                          V, C, LDC )
+*
+*     .. Scalar Arguments ..
+*     INTEGER           M, N, LDC
+*     CHARACTER         C2JOB, SIDE, DIRECT, STOREV
+*     DOUBLE PRECISION  TAU
+*     ..
+*     .. Array Arguments ..
+*     DOUBLE PRECISION  C(LDC,*), V( * )
+*     ..
+*
+*
+*> \par Purpose:
+*  =============
+*>
+*> \verbatim
+*>
+*> DORG1R generates the matrix associated with a householder reflector,
+*> which is defined as the first n columns of a single elementary
+*> reflector of order m
+*>
+*>       H = I - \tau*v*v**H
+*>
+*> as returned by DLARFG.
+*> \endverbatim
+*
+*  Arguments:
+*  ==========
+*
+*> \param[in] C2JOB
+*> \verbatim
+*>          C2JOB is CHARACTER*1
+*>          = 'I': Assume C2 is the identity matrix
+*>          Otherwise: Treat C2 as a general matrix that we reference
+*> \endverbatim
+*>
+*> \param[in] SIDE
+*> \verbatim
+*>          SIDE is CHARACTER*1
+*>          = 'L': apply H or H**T from the Left
+*>          = 'R': apply H or H**T from the Right
+*> \endverbatim
+*>
+*> \param[in] DIRECT
+*> \verbatim
+*>          DIRECT is CHARACTER*1
+*>          Indicates how H is formed from a product of elementary
+*>          reflectors
+*>          = 'F': H = H(1) H(2) . . . H(k) (Forward)
+*>          = 'B': H = H(k) . . . H(2) H(1) (Backward)
+*> \endverbatim
+*>
+*> \param[in] STOREV
+*> \verbatim
+*>          STOREV is CHARACTER*1
+*>          Indicates how the vectors which define the elementary
+*>          reflectors are stored:
+*>          = 'C': Columnwise
+*>          = 'R': Rowwise
+*> \endverbatim
+*>
+*> \param[in] M
+*> \verbatim
+*>          M is INTEGER
+*>          The number of rows of the matrix H. M >= 0.
+*> \endverbatim
+*>
+*> \param[in] N
+*> \verbatim
+*>          N is INTEGER
+*>          The number of columns of the matrix H. M >= N >= 0.
+*> \endverbatim
+*>
+*> \param[in] TAU
+*> \verbatim
+*>          TAU is DOUBLE PRECISION
+*>          TAU must contain the value TAU returned from DLARFG
+*> \endverbatim
+*>
+*> \param[in] V
+*> \verbatim
+*>          V is DOUBLE PRECISION array, dimension
+*>                     (1 + (M-1)*abs(INCV)) if SIDE = 'L'
+*>                  or (1 + (N-1)*abs(INCV)) if SIDE = 'R'
+*>          The vector v in the representation of H. V is not used if
+*>          TAU = 0. See Further Details.
+*> \endverbatim
+*>
+*> \param[in] INCV
+*> \verbatim
+*>          INCV is INTEGER
+*>          The increment between elements of v. INCV <> 0.
+*> \endverbatim
+*>
+*> \param[in,out] C
+*> \verbatim
+*>          C is DOUBLE PRECISION array, dimension (LDC,N)
+*>          On entry, the m by n matrix C.
+*>          On exit, C is overwritten by H*C or C*H.
+*> \endverbatim
+*>
+*> \param[in] LDC
+*> \verbatim
+*>          LDC is INTEGER
+*>          The leading dimension of the array C. LDC >= max(1,M).
+*> \endverbatim
+*>
+*> \param[out] INFO
+*> \verbatim
+*>          INFO is INTEGER
+*>          = 0: successful exit
+*>          < 0: if INFO = -i, the i-th argument has an illegal value
+*> \endverbatim
+*
+*  Authors:
+*  ========
+*
+*> \author Univ. of Tennessee
+*> \author Univ. of California Berkeley
+*> \author Univ. of Colorado Denver
+*> \author NAG Ltd.
+*
+*> \par Further Details:
+*  =====================
+*>
+*> \verbatim
+*>
+*>  The storage of the vector which define H is best illustrated with
+*>  the following example. We use a v of length 5, (this is M if
+*>  STOREV = 'C' and N if STOREV = 'R')
+*>
+*>  DIRECT = 'F' and STOREV = 'C':         DIRECT = 'F' and STOREV = 'R':
+*>
+*>               V = (  1 )                 V = (  1 v2 v3 v4 v5 )
+*>                   ( v2 )
+*>                   ( v3 )
+*>                   ( v4 )
+*>                   ( v5 )
+*>
+*>  DIRECT = 'B' and STOREV = 'C':         DIRECT = 'B' and STOREV = 'R':
+*>
+*>               V = ( v1 )                 V = ( v1 v2 v3 v4  1 )
+*>                   ( v2 )
+*>                   ( v3 )
+*>                   ( v4 )
+*>                   (  1 )
+*>
+*>  Also see dlarf1f and dlarf1l along with their usage in org{2r,2l,r2,l2}
+*>  for a similar routine but without the assumed 0 block in C
+*> \endverbatim
+*>
+*  =====================================================================
+*  =====================================================================
+      SUBROUTINE DLARF0C2( C2JOB, SIDE, DIRECT, STOREV, M, N, TAU,
+     $                     V, INCV, C, LDC )
+*
+*     .. Scalar Arguments ..
+      INTEGER           M, N, LDC, INCV
+      CHARACTER         C2JOB, SIDE, DIRECT, STOREV
+      DOUBLE PRECISION  TAU
+*     ..
+*     .. Array Arguments ..
+      DOUBLE PRECISION  C(LDC,*), V( * )
+*     ..
+*
+*  =====================================================================
+*
+*     .. Parameters ..
+      DOUBLE PRECISION  ONE, ZERO
+      PARAMETER         ( ONE = 1.0D+0, ZERO = 0.0D+0 )
+*     ..
+*     .. Local Scalars ..
+      LOGICAL           QR, LQ, QL, RQ, SIDEL, SIDER, COLV, C2I, DIRF
+      INTEGER           I, J
+*     ..
+*     .. External Functions ..
+      LOGICAL           LSAME
+      EXTERNAL          LSAME
+*     ..
+*     .. External Subroutines ..
+      EXTERNAL          DLARF1F, DSCAL, XERBLA
+*     ..
+*     .. Intrinsic Functions ..
+      INTRINSIC         MAX
+*     ..
+*     .. Executable Statements ..
+*
+*     Quick return if possible. When \tau is 0, H is defined to be I,
+*     so the application doesn't change C at all. However we still flow
+*     through as we will need to set the appropriate row of C to the 0 row
+*     In addition, our blas kernels should do nothing if the input scalar
+*     is 0.
+*
+      IF( M.LE.0.OR.N.LE.0 ) THEN
+         RETURN
+      END IF
+      DIRF  = LSAME(DIRECT, 'F')
+      COLV  = LSAME(STOREV, 'C')
+      C2I   = LSAME(C2JOB,  'I')
+      SIDEL = LSAME(SIDE,   'L')
+      SIDER = LSAME(SIDE,   'R')
+      IF( .NOT.(SIDEL.OR.SIDER) ) THEN
+         CALL XERBLA('DLARF0C2', 2) ! For consistency with dlarfb0c2
+      END IF
+*
+*     Determine which of the 4 modes we are doing.
+*     QR is when we have the first element of v being 1, and is stored
+*     as a column vector
+*
+      QR = DIRF.AND.COLV
+*
+*     LQ is when we have the first element of v being 1, and is stored
+*     as a row vector
+*
+      LQ = DIRF.AND.(.NOT.COLV)
+*
+*     QL is when we have the last element of v being 1, and is stored
+*     as a column vector
+*
+      QL = (.NOT.DIRF).AND.COLV
+*
+*     RQ is when we have the last element of v being 1, and is stored
+*     as a row vector
+*
+      RQ = (.NOT.DIRF).AND.(.NOT.COLV)
+      IF( QR ) THEN
+*        We are computing C = HC = (I - VTV')C
+*        Where: V = [  1 ], C = [ C1 ], and T=tau is a scalar
+*                   [ v  ]      [ C2 ]
+*        with the following dimensions:
+*            v\in\R^{m-1\times 1}
+*            C1=0\in\R^{1\times n}
+*            C2\in\R^{m-1\times n}
+*        Since we are assuming that C1 is a zero matrix and it will be
+*        overwritten on exit, we can use this spot as a temporary workspace
+*        without having to allocate anything extra.
+*        This lets us simplify our above equation to get
+*
+*        C = HC = (I - [  1 ]T [ 1,  v'])[ 0  ]
+*                      [  v ]            [ C2 ]
+*          = [ 0  ] - [  1 ]T* v'*C2
+*            [ C2 ]   [  v ]
+*
+*          = [ 0  ] - [ T* v'*C2 ]
+*            [ C2 ]   [  v*T* v'*C2 ]
+*
+*          = [        -T* v'*C2 ]
+*            [ C2 -  v*T* v'*C2 ]
+*
+*        So, we can order our computations as follows:
+*
+*        C1 = -tau * v'*C2
+*        C2 = C2 + v*C1
+*
+*        If we also add the constraint that C2 starts as the
+*        first n columns of the m-1 identity, then this simplifies into
+*
+*        C1 = -tau*v(1:n)'
+*        C2 = I + v*C1
+*
+*        First check if T = tau is 0, if this is the case, all we
+*        need to do is set the first row of C to be 0 then exit
+*
+         IF( TAU.EQ.ZERO ) THEN
+            DO J = 1, N
+               C(1,J) = ZERO
+            END DO
+            ! This means that C2=I was assumed, so now we explicitly set
+            ! this to be the case
+            IF ( C2I ) THEN
+               CALL DLASET('All', M-1, N, ZERO, ONE, C(2,1), LDC)
+            END IF
+         ELSE
+            IF( C2I ) THEN
+*
+*              C1 = -tau*v(1:n)'
+*
+               DO J = 1, N
+                  C(1,J) = -TAU*V(1 + (J-1)*INCV)
+               END DO
+*
+*              C2 = I + v*C1
+*              no routines that perform this operation exist, so
+*              we compute this columnwise
+*
+               DO J = 1, N
+                  DO I = 1, M-1
+                     IF (I.EQ.J) THEN
+                        C(1+J,J) = ONE + V(1 + (J-1)*INCV)*C(1,J)
+                     ELSE
+                        C(1+I,J) = V(1 + (I-1)*INCV)*C(1,J)
+                     END IF
+                  END DO
+               END DO
+            ELSE
+*
+*              C1 = -tau * v'*C2 = -tau * C2'*v
+*
+              CALL DGEMV('Transpose', M-1, N, -TAU, C(2,1), LDC,
+     $              V, INCV, ZERO, C, LDC)
+*
+*             !C2 = C2 + v*C1
+*
+              CALL DGER(M-1, N, ONE, V, INCV, C, LDC,
+     $              C(2,1), LDC)
+            END IF
+         END IF
+      ELSE IF( LQ ) THEN
+      ELSE IF( QL ) THEN
+      ELSE IF( RQ ) THEN
+
+      END IF
+      RETURN
+      END SUBROUTINE

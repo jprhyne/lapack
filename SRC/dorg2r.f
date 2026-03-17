@@ -129,7 +129,7 @@
       PARAMETER          ( ONE = 1.0D+0, ZERO = 0.0D+0 )
 *     ..
 *     .. Local Scalars ..
-      INTEGER            I, J, L
+      INTEGER            J
 *     ..
 *     .. External Subroutines ..
       EXTERNAL           DLARF1F, DSCAL, XERBLA
@@ -158,36 +158,38 @@
 *
 *     Quick return if possible
 *
-      IF( N.LE.0 )
-     $   RETURN
+*     Note that if M=0, then N must also be 0, so it's sufficient to only test
+*     N=0. If we have 0 reflectors, then we define the matrix Q to be the
+*     m\times n `identity'
 *
-*     Initialise columns k+1:n to columns of the unit matrix
-*
-      DO 20 J = K + 1, N
-         DO 10 L = 1, M
-            A( L, J ) = ZERO
-   10    CONTINUE
-         A( J, J ) = ONE
-   20 CONTINUE
-*
-      DO 40 I = K, 1, -1
-*
-*        Apply H(i) to A(i:m,i:n) from the left
-*
-         IF( I.LT.N ) THEN
-            CALL DLARF1F( 'Left', M-I+1, N-I, A( I, I ), 1, TAU( I ),
-     $                  A( I, I+1 ), LDA, WORK )
-         END IF
-         IF( I.LT.M )
-     $      CALL DSCAL( M-I, -TAU( I ), A( I+1, I ), 1 )
-         A( I, I ) = ONE - TAU( I )
-*
-*        Set A(1:i-1,i) to zero
-*
-         DO 30 L = 1, I - 1
-            A( L, I ) = ZERO
-   30    CONTINUE
-   40 CONTINUE
+      IF( N.LE.0 ) THEN
+         RETURN
+      ELSE IF( K.LE.0 ) THEN
+         CALL DLASET('All', M, N, ZERO, ONE, A, LDA)
+         RETURN
+      END IF
+      ! Apply the first (kth) reflector to the assumed identity matrix from
+      ! the left. Note that if n=k, we do nothing
+      CALL DLARF0C2('Identity', 'Left', 'Forward', 'Columnwise',
+     $   M-K+1, N-K, TAU(K), A(K+1,K), 1, A(K,K+1), LDA)
+
+      ! Now we compute the 1st non-zero of H, which is given by
+      ! A(k:m,k) = e_k - tau*v_k
+      ! Analagous to orgkr for n=1 (but T is not used as it is a scalar)
+      A(K,K) = ONE - TAU(K)
+      CALL DSCAL(M-K, -TAU(K), A(K+1,K), 1)
+      ! Now we apply columns 1:k-1 of V to A
+      IF( K.GT.1 ) THEN
+         DO J = K-1, 1, -1
+           CALL DLARF0C2('General', 'Left', 'Forward',
+     $       'Columnwise',  M-J+1, N-J, TAU(J), A(J+1,J), 1,
+     $       A(J,J+1), LDA)
+           ! A(k:m,k) = e_k - tau*v_k
+           ! Analagous to orgkr for n=1 (but T is not used as it is a scalar)
+           A(J,J) = ONE - TAU(J)
+           CALL DSCAL(M-J, -TAU(J), A(J+1,J), 1)
+         END DO
+      END IF
       RETURN
 *
 *     End of DORG2R
