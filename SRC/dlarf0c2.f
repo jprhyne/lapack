@@ -1,5 +1,5 @@
-*> \brief \b DORG1R generates either all or part of a householder
-*>    reflector matrix H = I - \tau v*v**H
+*> \brief \b DLARF0C2 applies an elementary reflector to a rectangular matrix
+*> with a 0 row/column while constructing the explicit Q factor.
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -242,8 +242,8 @@
 *        with the following dimensions:
 *            v\in\R^{m-1\times 1}
 *            C1=0\in\R^{1\times n}
-*            C2\in\R^{m-1\times n}
-*        Since we are assuming that C1 is a zero matrix and it will be
+*            C2  \in\R^{m-1\times n}
+*        Since we are assuming that C1 is a zero row and it will be
 *        overwritten on exit, we can use this spot as a temporary workspace
 *        without having to allocate anything extra.
 *        This lets us simplify our above equation to get
@@ -277,8 +277,10 @@
             DO J = 1, N
                C(1,J) = ZERO
             END DO
-            ! This means that C2=I was assumed, so now we explicitly set
-            ! this to be the case
+*
+*           If we assumed C2 was the identity matrix, we must explicitly
+*           set this before we exit
+*
             IF ( C2I ) THEN
                CALL DLASET('All', M-1, N, ZERO, ONE, C(2,1), LDC)
             END IF
@@ -308,16 +310,95 @@
 *
 *              C1 = -tau * v'*C2 = -tau * C2'*v
 *
-              CALL DGEMV('Transpose', M-1, N, -TAU, C(2,1), LDC,
+               CALL DGEMV('Transpose', M-1, N, -TAU, C(2,1), LDC,
      $              V, INCV, ZERO, C, LDC)
 *
-*             !C2 = C2 + v*C1
+*              C2 = C2 + v*C1
 *
-              CALL DGER(M-1, N, ONE, V, INCV, C, LDC,
-     $              C(2,1), LDC)
+               CALL DGER(M-1, N, ONE, V, INCV, C, LDC, C(2,1), LDC)
             END IF
          END IF
       ELSE IF( LQ ) THEN
+*
+*        We are computing C = CH = C(I-V'TV)
+*        Where: V = [  1 v ], C = [ 0 C2 ], and T=tau is a scalar
+*        with the following dimensions:
+*            v\in\R^{1\times n-1}
+*            C1=0\in\R^{m\times 1}
+*            C2  \in\R^{m\times n-1}
+*        Since we are assuming that C1 is a zero row and it will be
+*        overwritten on exit, we can use this spot as a temporary workspace
+*        without having to allocate anything extra.
+*        This lets us simplify our above equation to get
+*
+*        C = CH = [ 0 C2 ] - [ 0 C2 ] [ 1  ] T [ 1 v ]
+*                                     [ v' ]
+*
+*        = [ 0 C2 ] - C2*v'*T*[ 1 v ]
+*
+*        = [ 0 C2 ] - [ C2*v'*T C2*v'*T*v ]
+*
+*        = [ -C2*v'*T   C2 - C2*v'*T*v ]
+*
+*        This means we can order our computation as follows:
+*
+*        C1 = -tau*C2*v'
+*        C2 = C2 + C1*v
+*
+*        If we also add the constraint that C2 starts as the
+*        first m columns of the n-1 identity, then this simplifies into
+*
+*        C1 = -tau*v(1:m)'
+*        C2 = I + C1*v
+*
+*        First check if T = tau is 0, if this is the case, all we
+*        need to do is set the first column of C to be 0 then exit
+*
+         IF( TAU.EQ.ZERO ) THEN
+            DO I = 1, M
+               C(I,1) = ZERO
+            END DO
+*
+*           If we assumed C2 was the identity matrix, we must explicitly
+*           set this before we exit
+*
+            IF ( C2I ) THEN
+               CALL DLASET('All', M, N-1, ZERO, ONE, C(1,2), LDC)
+            END IF
+         ELSE
+            IF( C2I ) THEN
+*
+*              C1 = -tau*v(1:m)'
+*
+               DO I = 1, M
+                  C(I,1) = -TAU*V(1 + (I-1)*INCV)
+               END DO
+*
+*              C2 = I + C1*v
+*              no routines that perform this operation exist, so
+*              we compute this columnwise
+*
+               DO J = 1, N-1
+                  DO I = 1, M
+                     IF( I.EQ.J ) THEN
+                        C(I,1+J) = ONE + C(I,1)*V(1 + (J-1)*INCV)
+                     ELSE
+                        C(I,1+J) = C(I,1)*V(1 + (J-1)*INCV)
+                     END IF
+                  END DO
+               END DO
+            ELSE
+*
+*              C1 = -tau*C2*v'
+*
+               CALL DGEMV('No Transpose', M, N-1, -TAU, C(1,2), LDC,
+     $            V, INCV, ZERO, C, 1)
+*
+*              C2 = C2 + C1*v
+*
+               CALL DGER(M, N-1, ONE, C, 1, V, INCV, C(1,2), LDC)
+            END IF
+         END IF
       ELSE IF( QL ) THEN
       ELSE IF( RQ ) THEN
 
