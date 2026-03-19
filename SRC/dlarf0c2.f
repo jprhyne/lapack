@@ -237,8 +237,8 @@
       RQ = (.NOT.DIRF).AND.(.NOT.COLV)
       IF( QR ) THEN
 *        We are computing C = HC = (I - VTV')C
-*        Where: V = [  1 ], C = [ C1 ], and T=tau is a scalar
-*                   [ v  ]      [ C2 ]
+*        Where: V = [ 1 ], C = [ C1 ], and T=tau is a scalar
+*                   [ v ]      [ C2 ]
 *        with the following dimensions:
 *            v\in\R^{m-1\times 1}
 *            C1=0\in\R^{1\times n}
@@ -400,8 +400,89 @@
             END IF
          END IF
       ELSE IF( QL ) THEN
+*
+*        We are computing C = HC = (I - VTV')C
+*        Where: V = [ v ] and C = [ C2 ] and T=tau is a scalar
+*                   [ 1 ]         [ C1 ]
+*        with the following dimensions:
+*            v\in\R^{m-1\times 1}
+*            C1=0\in\R^{1\times n}
+*            C2  \in\R^{m-1\times n}
+*        Since we are assuming that C1 is a zero row and it will be
+*        overwritten on exit, we can use this spot as a temporary workspace
+*        without having to allocate anything extra.
+*        This lets us simplify our above equation to get
+*
+*        C = HC = [ C2 ] - [ v ]T[ v' 1 ][ C2 ]
+*                 [ 0  ]   [ 1 ]         [ 0  ]
+*
+*        = [ C2 ] - [ v ]T*v'C2
+*          [ 0  ]   [ 1 ]
+*
+*        = [ C2 - v*T*v'*C2 ]
+*          [    - T*v'*C2 ]
+*
+*        So, we can order our computations as follows:
+*
+*        C1 = -tau*C2'*v
+*        C2 = C2 + v*C1
+*
+*        If we also add the constraint that C2 starts as the
+*        first n columns of the m-1 identity, then this simplifies into
+*
+*        C1 = -tau*v(1:n)
+*        C2 = I + v*C1
+*
+*        First check if T = tau is 0, if this is the case, all we
+*        need to do is set the last row of C to be 0 then exit
+*
+         IF( TAU.EQ.ZERO ) THEN
+            DO J = 1, N
+               C(M, J) = ZERO
+            END DO
+*
+*           If we assumed C2 was the identity matrix, we must explicitly
+*           set this before we exit
+*
+            IF( C2I ) THEN
+               CALL DLASET('All', M-1, N, ZERO, ZERO, C, LDC)
+               DO I = 1, N
+                  C(M-N-1+I,I) = ONE
+               END DO
+            END IF
+         ELSE
+            IF( C2I ) THEN
+*
+*              C1 = -tau*v(m-n:m-1)
+*
+               DO J = 1, N
+                  C(M,J) = -TAU*V(1 + (M-1-N+J)*INCV)
+               END DO
+*
+*              C2 = I + v*C1
+*
+               DO J = 1, N
+                  DO I = 1, M-1
+                     IF( I.EQ.(M-N-1+J) ) THEN
+                        C(I,J) = ONE + V(1 + (I-1)*INCV)*C(M,J)
+                     ELSE
+                        C(I,J) = V(1 + (I-1)*INCV)*C(M,J)
+                     END IF
+                  END DO
+               END DO
+            ELSE
+*
+*              C1 = -tau*C2'*v
+*
+               CALL DGEMV('Transpose', M-1, N, -TAU, C, LDC,
+     $               V, INCV, ZERO, C(M,1), LDC)
+*
+*              C2 = C2 + v*C1
+*
+               CALL DGER(M-1, N, ONE, V, INCV, C(M,1), LDC, C, LDC)
+            END IF
+         END IF
       ELSE IF( RQ ) THEN
-
       END IF
       RETURN
       END SUBROUTINE
