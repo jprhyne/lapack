@@ -79,7 +79,7 @@
 *>
 *> \param[out] WORK
 *> \verbatim
-*>          WORK is REAL array, dimension (M)
+*>          WORK is REAL array. No longer referenced
 *> \endverbatim
 *>
 *> \param[out] INFO

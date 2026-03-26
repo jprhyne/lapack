@@ -253,7 +253,7 @@ CLASRC = \
    claqhb.o claqhe.o claqhp.o claqp2.o claqps.o claqp2rk.o claqp3rk.o claqsb.o \
    claqr0.o claqr1.o claqr2.o claqr3.o claqr4.o claqr5.o \
    claqsp.o claqsy.o clar1v.o clar2v.o ilaclr.o ilaclc.o \
-   clarf.o  clarf1f.o clarf1l.o clarfb.o clarfb0c2.o clarfb_gett.o clarfg.o clarft.o clarft_lvl2.o clarft_ut.o clarfgp.o \
+   clarf.o  clarf1f.o clarf1l.o clarfb.o clarf0c2.o clarfb0c2.o clarfb_gett.o clarfg.o clarft.o clarft_lvl2.o clarft_ut.o clarfgp.o \
    chtrk.o cht3rk.o \
    clarfx.o clarfy.o clargv.o clarnv.o clarrv.o clartg.o clartv.o \
    clarz.o  clarzb.o clarzt.o clascl.o claset.o clasr.o  classq.o \
@@ -283,7 +283,7 @@ CLASRC = \
    ctrsyl.o ctrsyl3.o ctrti2.o ctrtri.o ctrtrs.o ctzrzf.o cung2l.o cung2r.o \
    cungbr.o cunghr.o cungl2.o cunglq.o cungql.o cungqr.o cungr2.o \
    cungkr.o cungrk.o cungkl.o cunglk.o \
-   clumm.o ctrtrm.o ctrmmoop.o cacxpy.o \
+   clumm.o ctrtrm.o ctrmmoop.o cgemcv.o cacxpy.o \
    cungrq.o cungtr.o cungtsqr.o cungtsqr_row.o cunm2l.o cunm2r.o cunmbr.o cunmhr.o cunml2.o cunm22.o \
    cunmlq.o cunmql.o cunmqr.o cunmr2.o cunmr3.o cunmrq.o cunmrz.o \
    cunmtr.o cupgtr.o cupmtr.o icmax1.o scsum1.o cstemr.o \
@@ -495,7 +495,7 @@ ZLASRC = \
    zung2r.o zungbr.o zunghr.o zungl2.o zunglq.o zungql.o zungqr.o zungr2.o \
    zungrq.o zungtr.o zungtsqr.o zungtsqr_row.o zunm2l.o zunm2r.o zunmbr.o zunmhr.o zunml2.o zunm22.o \
    zungkr.o zungrk.o zungkl.o zunglk.o \
-   zlumm.o ztrtrm.o ztrmmoop.o zacxpy.o \
+   zlumm.o ztrtrm.o ztrmmoop.o zgemcv.o zacxpy.o \
    zunmlq.o zunmql.o zunmqr.o zunmr2.o zunmr3.o zunmrq.o zunmrz.o \
    zunmtr.o zupgtr.o \
    zupmtr.o izmax1.o dzsum1.o zstemr.o \

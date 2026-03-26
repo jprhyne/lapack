@@ -87,7 +87,7 @@
 *>
 *> \param[out] WORK
 *> \verbatim
-*>          WORK is DOUBLE PRECISION array, dimension (N)
+*>          WORK is DOUBLE PRECISION array. No longer referenced
 *> \endverbatim
 *>
 *> \param[out] INFO

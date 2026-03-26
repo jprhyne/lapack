@@ -23,7 +23,7 @@
 *>
 *> \verbatim
 *>
-*> ZUNG2R generates an m by n real matrix Q with orthonormal columns,
+*> ZUNG2R generates an m by n complex matrix Q with orthonormal columns,
 *> which is defined as the first n columns of a product of k elementary
 *> reflectors of order m
 *>
@@ -79,7 +79,7 @@
 *>
 *> \param[out] WORK
 *> \verbatim
-*>          WORK is COMPLEX*16 array, dimension (N). No longer referenced
+*>          WORK is COMPLEX*16 array. No longer referenced
 *> \endverbatim
 *>
 *> \param[out] INFO

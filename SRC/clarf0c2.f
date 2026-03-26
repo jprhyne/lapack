@@ -1,4 +1,4 @@
-*> \brief \b ZLARF0C2 applies an elementary reflector to a rectangular matrix
+*> \brief \b CLARF0C2 applies an elementary reflector to a rectangular matrix
 *> with a 0 row/column while constructing the explicit Q factor.
 *
 *  =========== DOCUMENTATION ===========
@@ -9,16 +9,16 @@
 *  Definition:
 *  ===========
 *
-*     SUBROUTINE ZLARF0C2( C2JOB, SIDE, DIRECT, STOREV, M, N, TAU,
+*     SUBROUTINE CLARF0C2( C2JOB, SIDE, DIRECT, STOREV, M, N, TAU,
 *                          V, C, LDC )
 *
 *     .. Scalar Arguments ..
 *     INTEGER           M, N, LDC
 *     CHARACTER         C2JOB, SIDE, DIRECT, STOREV
-*     COMPLEX*16        TAU
+*     COMPLEX        TAU
 *     ..
 *     .. Array Arguments ..
-*     COMPLEX*16        C(LDC,*), V( * )
+*     COMPLEX        C(LDC,*), V( * )
 *     ..
 *
 *
@@ -33,7 +33,7 @@
 *>
 *>       H = I - \tau*v*v**H
 *>
-*> as returned by ZLARFG.
+*> as returned by CLARFG.
 *> \endverbatim
 *
 *  Arguments:
@@ -85,13 +85,13 @@
 *>
 *> \param[in] TAU
 *> \verbatim
-*>          TAU is COMPLEX*16
-*>          TAU must contain the value TAU returned from ZLARFG
+*>          TAU is COMPLEX
+*>          TAU must contain the value TAU returned from CLARFG
 *> \endverbatim
 *>
 *> \param[in] V
 *> \verbatim
-*>          V is COMPLEX*16 array, dimension
+*>          V is COMPLEX array, dimension
 *>                     (1 + (M-1)*abs(INCV)) if SIDE = 'L'
 *>                  or (1 + (N-1)*abs(INCV)) if SIDE = 'R'
 *>          The vector v in the representation of H. V is not used if
@@ -106,7 +106,7 @@
 *>
 *> \param[in,out] C
 *> \verbatim
-*>          C is COMPLEX*16 array, dimension (LDC,N)
+*>          C is COMPLEX array, dimension (LDC,N)
 *>          On entry, the m by n matrix C.
 *>          On exit, C is overwritten by H*C or C*H.
 *> \endverbatim
@@ -157,29 +157,29 @@
 *>                   ( v4 )
 *>                   (  1 )
 *>
-*>  Also see zlarf1f and zlarf1l
+*>  Also see CLARF1f and CLARF1l
 *>  for a similar routine but without the assumed 0 block in C
 *> \endverbatim
 *>
 *  =====================================================================
-      SUBROUTINE ZLARF0C2( C2JOB, SIDE, DIRECT, STOREV, M, N, TAU,
+      SUBROUTINE CLARF0C2( C2JOB, SIDE, DIRECT, STOREV, M, N, TAU,
      $                     V, INCV, C, LDC )
 *
 *     .. Scalar Arguments ..
       INTEGER           M, N, LDC, INCV
       CHARACTER         C2JOB, SIDE, DIRECT, STOREV
-      COMPLEX*16        TAU
+      COMPLEX           TAU
 *     ..
 *     .. Array Arguments ..
-      COMPLEX*16        C(LDC,*), V( * )
+      COMPLEX           C(LDC,*), V( * )
 *     ..
 *
 *  =====================================================================
 *
 *     .. Parameters ..
-      COMPLEX*16        ONE, ZERO
-      PARAMETER         ( ONE = (1.0D+0, 0.0D+0),
-     $                    ZERO = (0.0D+0, 0.0D+0) )
+      COMPLEX           ONE, ZERO
+      PARAMETER         ( ONE = (1.0E+0, 0.0E+0),
+     $                    ZERO = (0.0E+0, 0.0E+0) )
 *     ..
 *     .. Local Scalars ..
       LOGICAL           QR, LQ, QL, RQ, SIDEL, SIDER, COLV, C2I, DIRF
@@ -190,7 +190,7 @@
       EXTERNAL          LSAME
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          ZGEMV, ZGERU, ZLASET, XERBLA
+      EXTERNAL          CGEMV, CGERU, CLASET, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC         CONJG
@@ -212,7 +212,7 @@
       SIDEL = LSAME(SIDE,   'L')
       SIDER = LSAME(SIDE,   'R')
       IF( .NOT.(SIDEL.OR.SIDER) ) THEN
-         CALL XERBLA('ZLARF0C2', 2) ! For consistency with dlarfb0c2
+         CALL XERBLA('CLARF0C2', 2) ! For consistency with dlarfb0c2
       END IF
 *
 *     Determine which of the 4 modes we are doing.
@@ -282,7 +282,7 @@
 *           set this before we exit
 *
             IF ( C2I ) THEN
-               CALL ZLASET('All', M-1, N, ZERO, ONE, C(2,1), LDC)
+               CALL CLASET('All', M-1, N, ZERO, ONE, C(2,1), LDC)
             END IF
          ELSE
             IF( C2I ) THEN
@@ -310,12 +310,12 @@
 *
 *              C1 = v'*C2 = -tau*(C2**T*conj(v))**T
 *
-               CALL ZGEMCV('Transpose', M-1, N, -TAU,
+               CALL CGEMCV('Transpose', M-1, N, -TAU,
      $              C(2,1), LDC, V, INCV, ZERO, C, LDC)
 *
 *              C2 = C2 + v*C1
 *
-               CALL ZGERU(M-1, N, ONE, V, INCV, C, LDC, C(2,1), LDC)
+               CALL CGERU(M-1, N, ONE, V, INCV, C, LDC, C(2,1), LDC)
             END IF
          END IF
       ELSE IF( LQ ) THEN
@@ -363,7 +363,7 @@
 *           set this before we exit
 *
             IF ( C2I ) THEN
-               CALL ZLASET('All', M, N-1, ZERO, ONE, C(1,2), LDC)
+               CALL CLASET('All', M, N-1, ZERO, ONE, C(1,2), LDC)
             END IF
          ELSE
             IF( C2I ) THEN
@@ -391,12 +391,12 @@
 *
 *              C1 = -tau*C2*v'
 *
-               CALL ZGEMCV('No Transpose', M, N-1, -TAU,
+               CALL CGEMCV('No Transpose', M, N-1, -TAU,
      $            C(1,2), LDC, V, INCV, ZERO, C, 1)
 *
 *              C2 = C2 + C1*v
 *
-               CALL ZGERU(M, N-1, ONE, C, 1, V, INCV, C(1,2), LDC)
+               CALL CGERU(M, N-1, ONE, C, 1, V, INCV, C(1,2), LDC)
             END IF
          END IF
       ELSE IF( QL ) THEN
@@ -445,7 +445,7 @@
 *           set this before we exit
 *
             IF( C2I ) THEN
-               CALL ZLASET('All', M-1, N, ZERO, ZERO, C, LDC)
+               CALL CLASET('All', M-1, N, ZERO, ZERO, C, LDC)
                DO I = 1, N
                   C(M-N-1+I,I) = ONE
                END DO
@@ -474,12 +474,12 @@
 *
 *              C1 = -tau*C2**T*conjg(v)
 *
-               CALL ZGEMCV('Transpose', M-1, N, -TAU, C, LDC,
+               CALL CGEMCV('Transpose', M-1, N, -TAU, C, LDC,
      $               V, INCV, ZERO, C(M,1), LDC)
 *
 *              C2 = C2 + v*C1
 *
-               CALL ZGERU(M-1, N, ONE, V, INCV, C(M,1), LDC, C, LDC)
+               CALL CGERU(M-1, N, ONE, V, INCV, C(M,1), LDC, C, LDC)
             END IF
          END IF
       ELSE IF( RQ ) THEN
@@ -522,7 +522,7 @@
 *           set this before we exit
 *
             IF( C2I ) THEN
-               CALL ZLASET('All', M, N-1, ZERO, ZERO, C, LDC)
+               CALL CLASET('All', M, N-1, ZERO, ZERO, C, LDC)
                DO I = 1, M
                   C(I, N-M-1+I) = ONE
                END DO
@@ -551,12 +551,12 @@
 *
 *              C1 = -tau*C2v'
 *
-               CALL ZGEMCV('No Transpose', M, N-1, -TAU, C, LDC,
+               CALL CGEMCV('No Transpose', M, N-1, -TAU, C, LDC,
      $            V, INCV, ZERO, C(1,N), 1)
 *
 *              C2 = C2 + C1*v
 *
-               CALL ZGERU(M, N-1, ONE, C(1,N), 1, V, INCV, C, LDC)
+               CALL CGERU(M, N-1, ONE, C(1,N), 1, V, INCV, C, LDC)
             END IF
          END IF
       END IF

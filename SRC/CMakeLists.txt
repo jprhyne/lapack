@@ -224,7 +224,7 @@ set(CLASRC
    claqhb.f claqhe.f claqhp.f claqp2.f claqps.f claqp2rk.f claqp3rk.f claqsb.f
    claqr0.f claqr1.f claqr2.f claqr3.f claqr4.f claqr5.f
    claqsp.f claqsy.f clar1v.f clar2v.f ilaclr.f ilaclc.f
-   clarf.f  clarf1f.f clarf1l.f clarfb.f clarfb0c2.f clarfb_gett.f clarfg.f clarfgp.f clarft.f clarft_lvl2.f clarft_ut.f
+   clarf.f  clarf1f.f clarf1l.f clarfb.f clarf0c2.f  clarfb0c2.f clarfb_gett.f clarfg.f clarfgp.f clarft.f clarft_lvl2.f clarft_ut.f
    chtrk.f cht3rk.f
    clarfx.f clarfy.f clargv.f clarnv.f clarrv.f clartg.f90 clartv.f
    clarz.f  clarzb.f clarzt.f clascl.f claset.f clasr.f  classq.f90
@@ -254,7 +254,7 @@ set(CLASRC
    ctrsyl.f ctrsyl3.f ctrti2.f ctrtri.f ctrtrs.f ctzrzf.f cung2l.f cung2r.f
    cungbr.f cunghr.f cungl2.f cunglq.f cungql.f cungqr.f cungr2.f
    cungkr.f cungrk.f cungkl.f cunglk.f
-   clumm.f ctrtrm.f ctrmmoop.f cacxpy.f
+   clumm.f ctrtrm.f ctrmmoop.f cgemcv.f cacxpy.f
    cungrq.f cungtr.f cungtsqr.f cungtsqr_row.f cunm2l.f cunm2r.f cunmbr.f cunmhr.f cunml2.f cunm22.f
    cunmlq.f cunmql.f cunmqr.f cunmr2.f cunmr3.f cunmrq.f cunmrz.f
    cunmtr.f cupgtr.f cupmtr.f icmax1.f scsum1.f cstemr.f
@@ -463,7 +463,7 @@ set(ZLASRC
    zung2r.f zungbr.f zunghr.f zungl2.f zunglq.f zungql.f zungqr.f zungr2.f
    zungrq.f zungtr.f zungtsqr.f zungtsqr_row.f zunm2l.f zunm2r.f zunmbr.f zunmhr.f zunml2.f zunm22.f
    zungkr.f zungrk.f zungkl.f zunglk.f
-   zlumm.f ztrtrm.f ztrmmoop.f zacxpy.f
+   zlumm.f ztrtrm.f ztrmmoop.f zgemcv.f zacxpy.f
    zunmlq.f zunmql.f zunmqr.f zunmr2.f zunmr3.f zunmrq.f zunmrz.f
    zunmtr.f zupgtr.f
    zupmtr.f izmax1.f dzsum1.f zstemr.f

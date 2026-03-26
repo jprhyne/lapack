@@ -78,7 +78,7 @@
 *>
 *> \param[out] WORK
 *> \verbatim
-*>          WORK is REAL array, no longer referenced
+*>          WORK is REAL array. No longer referenced
 *> \endverbatim
 *>
 *> \param[out] INFO

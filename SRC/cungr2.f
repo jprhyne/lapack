@@ -1,17 +1,9 @@
-*> \brief \b CUNGR2 generates all or part of the unitary matrix Q from an RQ factorization determined by cgerqf (unblocked algorithm).
+*> \brief \b CUNGR2 generates all or part of the orthogonal matrix Q from an RQ factorization determined by cgerqf (unblocked algorithm).
 *
 *  =========== DOCUMENTATION ===========
 *
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
-*
-*> Download CUNGR2 + dependencies
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/cungr2.f">
-*> [TGZ]</a>
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/cungr2.f">
-*> [ZIP]</a>
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/cungr2.f">
-*> [TXT]</a>
 *
 *  Definition:
 *  ===========
@@ -22,7 +14,7 @@
 *       INTEGER            INFO, K, LDA, M, N
 *       ..
 *       .. Array Arguments ..
-*       COMPLEX            A( LDA, * ), TAU( * ), WORK( * )
+*       COMPLEX   A( LDA, * ), TAU( * ), WORK( * )
 *       ..
 *
 *
@@ -35,9 +27,9 @@
 *> which is defined as the last m rows of a product of k elementary
 *> reflectors of order n
 *>
-*>       Q  =  H(1)**H H(2)**H . . . H(k)**H
+*>       Q  =  H(1) H(2) . . . H(k)
 *>
-*> as returned by CGERQF.
+*> as returned by ZGERQF.
 *> \endverbatim
 *
 *  Arguments:
@@ -67,9 +59,9 @@
 *>          A is COMPLEX array, dimension (LDA,N)
 *>          On entry, the (m-k+i)-th row must contain the vector which
 *>          defines the elementary reflector H(i), for i = 1,2,...,k, as
-*>          returned by CGERQF in the last k rows of its array argument
+*>          returned by ZGERQF in the last k rows of its array argument
 *>          A.
-*>          On exit, the m-by-n matrix Q.
+*>          On exit, the m by n matrix Q.
 *> \endverbatim
 *>
 *> \param[in] LDA
@@ -82,12 +74,12 @@
 *> \verbatim
 *>          TAU is COMPLEX array, dimension (K)
 *>          TAU(i) must contain the scalar factor of the elementary
-*>          reflector H(i), as returned by CGERQF.
+*>          reflector H(i), as returned by ZGERQF.
 *> \endverbatim
 *>
 *> \param[out] WORK
 *> \verbatim
-*>          WORK is COMPLEX array, dimension (M)
+*>          WORK is COMPLEX array. No longer referenced
 *> \endverbatim
 *>
 *> \param[out] INFO
@@ -126,14 +118,14 @@
 *
 *     .. Parameters ..
       COMPLEX            ONE, ZERO
-      PARAMETER          ( ONE = ( 1.0E+0, 0.0E+0 ),
-     $                   ZERO = ( 0.0E+0, 0.0E+0 ) )
+      PARAMETER          ( ONE = (1.0E+0, 0.0E+0),
+     $                     ZERO = (0.0E+0, 0.0E+0) )
 *     ..
 *     .. Local Scalars ..
-      INTEGER            I, II, J, L
+      INTEGER            I
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           CLACGV, CLARF1L, CSCAL, XERBLA
+      EXTERNAL           CLARF0C2, CSCAL, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          CONJG, MAX
@@ -159,41 +151,41 @@
 *
 *     Quick return if possible
 *
-      IF( M.LE.0 )
-     $   RETURN
+*     Note that if N=0, then M must also be 0, so it's sufficient to only test
+*     M=0. If we have 0 reflectors, then we define the matrix Q to be the
+*     m\times n `identity'
 *
-      IF( K.LT.M ) THEN
-*
-*        Initialise rows 1:m-k to rows of the unit matrix
-*
-         DO 20 J = 1, N
-            DO 10 L = 1, M - K
-               A( L, J ) = ZERO
-   10       CONTINUE
-            IF( J.GT.N-M .AND. J.LE.N-K )
-     $         A( M-N+J, J ) = ONE
-   20    CONTINUE
+      IF( M.LE.0 ) THEN
+         RETURN
+      ELSE IF( K.LE.0 ) THEN
+         CALL CLASET('All', M, N, ZERO, ONE, A(1,M-N+1), LDA)
+         RETURN
       END IF
 *
-      DO 40 I = 1, K
-         II = M - K + I
+*     Apply H(1) to the assumed identity matrix from the right
 *
-*        Apply H(i)**H to A(1:m-k+i,1:n-k+i) from the right
+      CALL CLARF0C2('Identity', 'Right', 'Backward', 'Rowwise',
+     $      M-K, N-K+1, CONJG(TAU(1)), A(M-K+1, 1), LDA, A, LDA)
 *
-         CALL CLACGV( N-M+II-1, A( II, 1 ), LDA )
-         A( II, N-M+II ) = ONE
-         CALL CLARF1L( 'Right', II-1, N-M+II, A( II, 1 ), LDA,
-     $                 CONJG( TAU( I ) ), A, LDA, WORK )
-         CALL CSCAL( N-M+II-1, -TAU( I ), A( II, 1 ), LDA )
-         CALL CLACGV( N-M+II-1, A( II, 1 ), LDA )
-         A( II, N-M+II ) = ONE - CONJG( TAU( I ) )
+*     Apply H(1) to v_1
 *
-*        Set A(m-k+i,n-k+i+1:n) to zero
+      CALL CSCAL(N-K, -CONJG(TAU(1)), A(M-K+1, 1), LDA)
+      A( M-K+1, N-K+1) = ONE - CONJG(TAU(1))
+      IF( K.GT.1 ) THEN
+         DO I = 2, K
 *
-         DO 30 L = N - M + II + 1, N
-            A( II, L ) = ZERO
-   30    CONTINUE
-   40 CONTINUE
+*           Apply H(i) to A from the right
+*
+            CALL CLARF0C2('General', 'Right', 'Backward', 'Rowwise',
+     $            M-K+I-1, N-K+I, CONJG(TAU(I)), A(M-K+I, 1),
+     $            LDA, A, LDA)
+*
+*           Apply H(i) to v_i
+*
+            CALL CSCAL(N-K+I-1, -CONJG(TAU(I)), A(M-K+I, 1), LDA)
+            A( M-K+I, N-K+I) = ONE - CONJG(TAU(I))
+         END DO
+      END IF
       RETURN
 *
 *     End of CUNGR2
