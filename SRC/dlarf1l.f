@@ -201,14 +201,14 @@
             ! Check if m = 1. This means v = 1, So we just need to compute
             ! C := HC = (1-\tau)C.
             IF( LASTV.EQ.FIRSTV ) THEN
-               CALL DSCAL(LASTC, ONE - TAU, C( FIRSTV, 1), LDC)
+               CALL DSCAL(LASTC, ONE - TAU, C( LASTV, 1), LDC)
             ELSE
 *
 *              w(1:lastc,1) := C(1:lastv,1:lastc)**T * v(1:lastv,1)
 *
                ! w(1:lastc,1) := C(1:lastv-1,1:lastc)**T * v(1:lastv-1,1)
                CALL DGEMV( 'Transpose', LASTV-FIRSTV, LASTC, ONE,
-     $                     C(FIRSTV,1), LDC, V(I), INCV, ZERO, 
+     $                     C(FIRSTV,1), LDC, V(I), INCV, ZERO,
      $                     WORK, 1)
                ! w(1:lastc,1) += C(lastv,1:lastc)**T * v(lastv,1) = C(lastv,1:lastc)**T
                CALL DAXPY(LASTC, ONE, C(LASTV,1), LDC, WORK, 1)
@@ -231,7 +231,7 @@
             ! Check if n = 1. This means v = 1, so we just need to compute
             ! C := CH = C(1-\tau).
             IF( LASTV.EQ.FIRSTV ) THEN
-               CALL DSCAL(LASTC, ONE - TAU, C, 1)
+               CALL DSCAL(LASTC, ONE - TAU, C(1,LASTV), 1)
             ELSE
 *
 *              w(1:lastc,1) := C(1:lastc,1:lastv) * v(1:lastv,1)
@@ -248,7 +248,7 @@
                !                       = C(...) - tau * w(1:lastc,1)
                CALL DAXPY(LASTC, -TAU, WORK, 1, C(1,LASTV), 1)
                ! C(1:lastc,1:lastv-1) := C(...) - tau * w(1:lastc,1) * v(1:lastv-1)**T
-               CALL DGER( LASTC, LASTV-FIRSTV, -TAU, WORK, 1, V(I), 
+               CALL DGER( LASTC, LASTV-FIRSTV, -TAU, WORK, 1, V(I),
      $                     INCV, C(1,FIRSTV), LDC )
             END IF
          END IF

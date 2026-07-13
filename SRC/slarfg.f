@@ -118,8 +118,8 @@
 *  =====================================================================
 *
 *     .. Parameters ..
-      REAL               ONE, ZERO
-      PARAMETER          ( ONE = 1.0E+0, ZERO = 0.0E+0 )
+      REAL               TWO, ONE, ZERO
+      PARAMETER          ( TWO = 2.0E+0, ONE = 1.0E+0, ZERO = 0.0E+0 )
 *     ..
 *     .. Local Scalars ..
       INTEGER            J, KNT
@@ -137,7 +137,14 @@
 *     ..
 *     .. Executable Statements ..
 *
-      IF( N.LE.1 ) THEN
+      IF( N.EQ.1 ) THEN
+*
+*        H  =  -I
+*
+         TAU = TWO
+         ALPHA = -ALPHA
+         RETURN
+      ELSE IF( N.LE.0 ) THEN
          TAU = ZERO
          RETURN
       END IF
@@ -146,9 +153,10 @@
 *
       IF( XNORM.EQ.ZERO ) THEN
 *
-*        H  =  I
+*        H  =  -I
 *
-         TAU = ZERO
+         TAU = TWO
+         ALPHA = -ALPHA
       ELSE
 *
 *        general case

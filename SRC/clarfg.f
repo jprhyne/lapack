@@ -118,8 +118,8 @@
 *  =====================================================================
 *
 *     .. Parameters ..
-      REAL               ONE, ZERO
-      PARAMETER          ( ONE = 1.0E+0, ZERO = 0.0E+0 )
+      REAL               TWO, ONE, ZERO
+      PARAMETER          ( TWO = 2.0E+0, ONE = 1.0E+0, ZERO = 0.0E+0 )
 *     ..
 *     .. Local Scalars ..
       INTEGER            J, KNT
@@ -149,9 +149,10 @@
 *
       IF( XNORM.EQ.ZERO .AND. ALPHI.EQ.ZERO ) THEN
 *
-*        H  =  I
+*        H  =  -I
 *
-         TAU = ZERO
+         TAU = TWO
+         ALPHA = -ALPHA
       ELSE
 *
 *        general case
