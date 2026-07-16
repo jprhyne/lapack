@@ -186,6 +186,10 @@
          LOGICAL           TLEFT, TUPPER, VTRANS, VUNIT, TUNIT
          DOUBLE PRECISION  TMP
 *        ..
+*        .. Parameters ..
+         DOUBLE PRECISION ONE,ZERO
+         PARAMETER (ONE=1.0D+0,ZERO=0.0D+0)
+*        ..
 *
 *        Beginning of Executable Statements
 *
@@ -258,17 +262,23 @@
 *                          Compute from the bottom of the column to top
 *                          Compute the element on the diagonal
 *
-                           T(J,J) = ALPHA / T(J,J)
+                           IF( T(J,J).NE.ZERO ) THEN
+                              T(J,J) = ALPHA / T(J,J)
+                           END IF
 *
 *                          Compute all elements above
 *
                            IF (J.GT.1) THEN
                               DO I = J-1, 1, -1
-                                 TMP = ALPHA*V(J,I)
-                                 DO K = J, I+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
+                                 IF( T(I,I).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(J,I)
+                                    DO K = J, I+1, -1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(I,I)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -282,17 +292,23 @@
 *                          Compute from the bottom of the column to top
 *                          Compute the element on the diagonal
 *
-                           T(J,J) = ALPHA*V(J,J) / T(J,J)
+                           IF( T(J,J).NE.ZERO ) THEN
+                              T(J,J) = ALPHA*V(J,J) / T(J,J)
+                           END IF
 *
 *                          Compute all elements above
 *
                            IF (J.GT.1) THEN
                               DO I = J-1, 1, -1
-                                 TMP = ALPHA*V(J,I)
-                                 DO K = J, I+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
+                                 IF( T(I,I).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(J,I)
+                                    DO K = J, I+1, -1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(I,I)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -360,17 +376,23 @@
 *                          Compute from the bottom of the column to top
 *                          Compute the element on the diagonal
 *
-                           T(J,J) = ALPHA / T(J,J)
+                           IF( T(J,J).NE.ZERO ) THEN
+                              T(J,J) = ALPHA / T(J,J)
+                           END IF
 *
 *                          Compute all elements above
 *
                            IF (J.GT.1) THEN
                               DO I = J-1, 1, -1
-                                 TMP = ALPHA*V(I,J)
-                                 DO K = J, I+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
+                                 IF( T(I,I).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(I,J)
+                                    DO K = J, I+1, -1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(I,I)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -384,17 +406,23 @@
 *                          Compute from the bottom of the column to top
 *                          Compute the element on the diagonal
 *
-                           T(J,J) = ALPHA*V(J,J) / T(J,J)
+                           IF( T(J,J).NE.ZERO ) THEN
+                              T(J,J) = ALPHA*V(J,J) / T(J,J)
+                           END IF
 *
 *                          Compute all elements above
 *
                            IF (J.GT.1) THEN
                               DO I = J-1, 1, -1
-                                 TMP = ALPHA*V(I,J)
-                                 DO K = J, I+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
+                                 IF( T(I,I).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(I,J)
+                                    DO K = J, I+1, -1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(I,I)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -464,17 +492,23 @@
 *                          Compute from the bottom of the column to top
 *                          Compute the element on the diagonal
 *
-                           T(J,J) = ALPHA / T(J,J)
+                           IF( T(J,J).NE.ZERO ) THEN
+                              T(J,J) = ALPHA / T(J,J)
+                           END IF
 *
 *                          Compute all elements below
 *
                            IF (J.LT.N) THEN
                               DO I = J+1, N
-                                 TMP = ALPHA*V(J,I)
-                                 DO K = J, I-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
+                                 IF( T(I,I).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(J,I)
+                                    DO K = J, I-1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(I,I)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -488,17 +522,23 @@
 *                          Compute from the bottom of the column to top
 *                          Compute the element on the diagonal
 *
-                           T(J,J) = ALPHA*V(J,J) / T(J,J)
+                           IF( T(J,J).NE.ZERO ) THEN
+                              T(J,J) = ALPHA*V(J,J) / T(J,J)
+                           END IF
 *
 *                          Compute all elements below
 *
                            IF (J.LT.N) THEN
                               DO I = J+1, N
-                                 TMP = ALPHA*V(J,I)
-                                 DO K = J, I-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
+                                 IF( T(I,I).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(J,I)
+                                    DO K = J, I-1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(I,I)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -566,17 +606,23 @@
 *                          Compute from the bottom of the column to top
 *                          Compute the element on the diagonal
 *
-                           T(J,J) = ALPHA / T(J,J)
+                           IF( T(J,J).NE.ZERO ) THEN
+                              T(J,J) = ALPHA / T(J,J)
+                           END IF
 *
 *                          Compute all elements below
 *
                            IF (J.LT.N) THEN
                               DO I = J+1, N
-                                 TMP = ALPHA*V(I,J)
-                                 DO K = J, I-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
+                                 IF( T(I,I).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(I,J)
+                                    DO K = J, I-1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(I,I)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -590,17 +636,23 @@
 *                          Compute from the bottom of the column to top
 *                          Compute the element on the diagonal
 *
-                           T(J,J) = ALPHA*V(J,J) / T(J,J)
+                           IF( T(J,J).NE.ZERO ) THEN
+                              T(J,J) = ALPHA*V(J,J) / T(J,J)
+                           END IF
 *
 *                          Compute all elements below
 *
                            IF (J.LT.N) THEN
                               DO I = J+1, N
-                                 TMP = ALPHA*V(I,J)
-                                 DO K = J, I-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(I,I)
+                                 IF( T(I,I).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(I,J)
+                                    DO K = J, I-1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(I,I)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -669,17 +721,23 @@
 *
 *                          Compute the leftmost component of the row
 *
-                           T(I,I) = ALPHA / T(I,I)
+                           IF( T(I,I).NE.ZERO ) THEN
+                              T(I,I) = ALPHA / T(I,I)
+                           END IF
 *
 *                          Compute all elements to the right (if any)
 *
                            IF (I.LT.N) THEN
                               DO J = I+1, N
-                                 TMP = ALPHA*V(J,I)
-                                 DO K = I, J-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
+                                 IF( T(J,J).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(J,I)
+                                    DO K = I, J-1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(J,J)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -692,17 +750,23 @@
 *
 *                          Compute the leftmost component of the row
 *
-                           T(I,I) = ALPHA*V(I,I) / T(I,I)
+                           IF( T(I,I).NE.ZERO ) THEN
+                              T(I,I) = ALPHA*V(I,I) / T(I,I)
+                           END IF
 *
 *                          Compute all elements to the right (if any)
 *
                            IF (I.LT.N) THEN
                               DO J = I+1, N
-                                 TMP = ALPHA*V(J,I)
-                                 DO K = I, J-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
+                                 IF( T(J,J).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(J,I)
+                                    DO K = I, J-1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(J,J)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -767,17 +831,23 @@
 *
 *                          Compute the leftmost component of the row
 *
-                           T(I,I) = ALPHA / T(I,I)
+                           IF( T(I,I).NE.ZERO ) THEN
+                              T(I,I) = ALPHA / T(I,I)
+                           END IF
 *
 *                          Compute all elements to the right (if any)
 *
                            IF (I.LT.N) THEN
                               DO J = I+1, N
-                                 TMP = ALPHA*V(I,J)
-                                 DO K = I, J-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
+                                 IF( T(J,J).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(I,J)
+                                    DO K = I, J-1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(J,J)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -790,17 +860,23 @@
 *
 *                          Compute the leftmost component of the row
 *
-                           T(I,I) = ALPHA*V(I,I) / T(I,I)
+                           IF( T(I,I).NE.ZERO ) THEN
+                              T(I,I) = ALPHA*V(I,I) / T(I,I)
+                           END IF
 *
 *                          Compute all elements to the right (if any)
 *
                            IF (I.LT.N) THEN
                               DO J = I+1, N
-                                 TMP = ALPHA*V(I,J)
-                                 DO K = I, J-1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
+                                 IF( T(J,J).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(I,J)
+                                    DO K = I, J-1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(J,J)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -867,17 +943,23 @@
 *
 *                          Compute the rightmost component of the row
 *
-                           T(I,I) = ALPHA / T(I,I)
+                           IF( T(I,I).NE.ZERO ) THEN
+                              T(I,I) = ALPHA / T(I,I)
+                           END IF
 *
 *                          If necessary, compute all elements to the left
 *
                            IF (I.NE.1) THEN
                               DO J = I-1, 1, -1
-                                 TMP = ALPHA*V(J,I)
-                                 DO K = I, J+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
+                                 IF( T(J,J).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(J,I)
+                                    DO K = I, J+1, -1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(J,J)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -890,17 +972,23 @@
 *
 *                          Compute the rightmost component of the row
 *
-                           T(I,I) = ALPHA*V(I,I) / T(I,I)
+                           IF( T(I,I).NE.ZERO ) THEN
+                              T(I,I) = ALPHA*V(I,I) / T(I,I)
+                           END IF
 *
 *                          If necessary, compute all elements to the left
 *
                            IF (I.NE.1) THEN
                               DO J = I-1, 1, -1
-                                 TMP = ALPHA*V(J,I)
-                                 DO K = I, J+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
+                                 IF( T(J,J).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(J,I)
+                                    DO K = I, J+1, -1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(J,J)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -965,17 +1053,23 @@
 *
 *                          Compute the rightmost component of the row
 *
-                           T(I,I) = ALPHA / T(I,I)
+                           IF( T(I,I).NE.ZERO ) THEN
+                              T(I,I) = ALPHA / T(I,I)
+                           END IF
 *
 *                          If necessary, compute all elements to the left
 *
                            IF (I.NE.1) THEN
                               DO J = I-1, 1, -1
-                                 TMP = ALPHA*V(I,J)
-                                 DO K = I, J+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
+                                 IF( T(J,J).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(I,J)
+                                    DO K = I, J+1, -1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(J,J)
+                                 ELSE
+                                    T(I,J) = ZERO
+                                 END IF
                               END DO
                            END IF
                         END DO
@@ -988,17 +1082,24 @@
 *
 *                          Compute the rightmost component of the row
 *
-                           T(I,I) = ALPHA*V(I,I) / T(I,I)
+                           IF( T(I,I).NE.ZERO ) THEN
+                              T(I,I) = ALPHA*V(I,I) / T(I,I)
+                           END IF
 *
 *                          If necessary, compute all elements to the left
 *
                            IF (I.NE.1) THEN
                               DO J = I-1, 1, -1
-                                 TMP = ALPHA*V(I,J)
-                                 DO K = I, J+1, -1
-                                    TMP = TMP - T(I,K)*T(K,J)
-                                 END DO
-                                 T(I,J) = TMP / T(J,J)
+                                 IF( T(J,J).NE.ZERO ) THEN
+                                    TMP = ALPHA*V(I,J)
+                                    DO K = I, J+1, -1
+                                       TMP = TMP - T(I,K)*T(K,J)
+                                    END DO
+                                    T(I,J) = TMP / T(J,J)
+                                 ELSE
+                                    T(I,J) = ZERO ! We want to set this entire
+                                    ! row to 0
+                                 END IF
                               END DO
                            END IF
                         END DO

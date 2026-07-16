@@ -272,7 +272,7 @@
 *
 *                 Solve T_{11}*X_{12} = T_{12}  (TRSM)
 *
-                  CALL DTRSM('Left', UPLO, 'No Transpose', DIAGT,
+                  CALL DTRSM_MOD('Left', UPLO, 'No Transpose', DIAGT,
      $                  K, N-K, ONE, T, LDT, T(1,K+1), LDT)
 *
 *                 Solve T_{11}*X_{11} = alpha V_{11}^\top  (TRTRSM)

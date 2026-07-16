@@ -355,7 +355,7 @@ DLASRC = \
    dlatbs.o dlatdf.o dlatps.o dlatrd.o dlatrs.o dlatrs3.o dlatrz.o dlauu2.o \
    dlauum.o dopgtr.o dopmtr.o dorg2l.o dorg2r.o \
    dorgkr.o dorgrk.o dorgkl.o dorglk.o \
-   dlumm.o dlusm.o dtrtrmm.o dtrtrsm.o dtrtrsm_lvl2.o dtrmmoop.o dtrmmoop_lvl2.o dtrmvoop.o \
+   dlumm.o dlusm.o dtrtrmm.o dtrsm_lvl2_mod.o dtrsm_mod.o dtrtrsm.o dtrtrsm_lvl2.o dtrmmoop.o dtrmmoop_lvl2.o dtrmvoop.o \
    dorgbr.o dorghr.o dorgl2.o dorglq.o dorgql.o dorgqr.o dorgr2.o \
    dorgrq.o dorgtr.o dorgtsqr.o dorgtsqr_row.o dorm2l.o dorm2r.o dorm22.o \
    dormbr.o dormhr.o dorml2.o dormlq.o dormql.o dormqr.o dormr2.o \
@@ -387,7 +387,7 @@ DLASRC = \
    dtgsja.o dtgsna.o dtgsy2.o dtgsyl.o dtpcon.o dtprfs.o dtptri.o \
    dtptrs.o \
    dtrcon.o dtrevc.o dtrevc3.o dtrexc.o dtrrfs.o dtrsen.o dtrsna.o dtrsyl.o \
-   dtrsyl3.o dtrti2.o dtrtri.o dtrtrs.o dtzrzf.o dstemr.o \
+   dtrsyl3.o dtrti2.o dtrti2_mod.o dtrtri.o dtrtrs.o dtzrzf.o dstemr.o \
    dsgesv.o dsposv.o dlag2s.o slag2d.o dlat2s.o \
    dlansf.o dpftrf.o dpftri.o dpftrs.o dsfrk.o dtfsm.o dtftri.o dtfttp.o \
    dtfttr.o dtpttf.o dtpttr.o dtrttf.o dtrttp.o \

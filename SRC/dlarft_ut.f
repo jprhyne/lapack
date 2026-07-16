@@ -199,7 +199,7 @@
 *
 *     .. External Subroutines ..
 *
-      EXTERNAL          DST3RK, DSYRK, DTRTRI, DLARFT_LVL2,
+      EXTERNAL          DST3RK, DSYRK, DTRTI2_MOD, DLARFT_LVL2,
      $                  XERBLA
 *
 *     .. External Functions..
@@ -221,22 +221,22 @@
 *     We could also just error out by calling XERBLA if this is desired
 *
       INVT = LSAME(APPLYT, 'M')
-      DO I = 1, K
-         IF( TAU(I).EQ.ZERO ) THEN
-            IF (.NOT.INVT) THEN
-*
-*              There are no existing routines that perform this operation, so we
-*              error out. We report jobt as the incorrect flag since APPLYT='M' is
-*              allowed for this case
-*
-               CALL XERBLA( 'DLARFT_UT', 3 )
-               RETURN
-            END IF
-            CALL DLARFT_LVL2(DIRECT, STOREV, N, K, V, LDV, TAU,
-     $            T, LDT)
-            RETURN
-         END IF
-      END DO
+!     DO I = 1, K
+!        IF( TAU(I).EQ.ZERO ) THEN
+!           IF (.NOT.INVT) THEN
+!
+!              There are no existing routines that perform this operation, so we
+!              error out. We report jobt as the incorrect flag since APPLYT='M' is
+!              allowed for this case
+!
+!              CALL XERBLA( 'DLARFT_UT', 3 )
+!              RETURN
+!           END IF
+!           CALL DLARFT_LVL2(DIRECT, STOREV, N, K, V, LDV, TAU,
+!    $            T, LDT)
+!           RETURN
+!        END IF
+!     END DO
 *
 *     If we reach here, then we guarantee the calls to dtrtri will not fail
 *
@@ -314,7 +314,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZERO ) THEN
+               T(I,I) = ZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -322,7 +326,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL DTRTRI('Upper', 'Non-Unit', K, T, LDT, INFO)
+            CALL DTRTI2_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(LQ) THEN
 *
@@ -356,7 +360,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZERO ) THEN
+               T(I,I) = ZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -364,7 +372,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL DTRTRI('Upper', 'Non-Unit', K, T, LDT, INFO)
+            CALL DTRTI2_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(LQT) THEN
 *
@@ -398,7 +406,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZERO ) THEN
+               T(I,I) = ZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -406,7 +418,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL DTRTRI('Lower', 'Non-Unit', K, T, LDT, INFO)
+            CALL DTRTI2_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(QL) THEN
 *
@@ -441,7 +453,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZERO ) THEN
+               T(I,I) = ZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -449,7 +465,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL DTRTRI('Lower', 'Non-Unit', K, T, LDT, INFO)
+            CALL DTRTI2_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(RQ) THEN
 *
@@ -483,7 +499,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZERO ) THEN
+               T(I,I) = ZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -491,7 +511,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL DTRTRI('Lower', 'Non-Unit', K, T, LDT, INFO)
+            CALL DTRTI2_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(RQT) THEN
 *
@@ -525,7 +545,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZERO ) THEN
+               T(I,I) = ZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -533,7 +557,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL DTRTRI('Upper', 'Non-Unit', K, T, LDT, INFO)
+            CALL DTRTI2_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
          END IF
       END IF
       END SUBROUTINE
