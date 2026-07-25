@@ -277,6 +277,8 @@
                         TEMP = TEMP - A(I,K)*B(K,J)
                      END DO
                      B(I,J) = TEMP / A(I,I)
+                  ELSE
+                     B(I,J) = ZERO
                   END IF
                END DO
             END DO

@@ -207,37 +207,6 @@
       LOGICAL           LSAME
       EXTERNAL          LSAME
 *
-*     Beginning of executable statements
-*
-*     This method is only viable for non-singular V matrices with
-*     non-zero associated tau values. We know for a fact that V is
-*     always non-singular as V is unit triangular, however tau can
-*     be 0. Thus, if we detect this case, we bail to the level-2 BLAS
-*     implementation, which is known to work in these instances, which
-*     will never bail back to this implementation.
-*
-*     Note: We are not bailing to the standard larft as that subroutine
-*     may call this subroutine as a terminating case.
-*     We could also just error out by calling XERBLA if this is desired
-*
-      INVT = LSAME(APPLYT, 'M')
-!     DO I = 1, K
-!        IF( TAU(I).EQ.ZERO ) THEN
-!           IF (.NOT.INVT) THEN
-!
-!              There are no existing routines that perform this operation, so we
-!              error out. We report jobt as the incorrect flag since APPLYT='M' is
-!              allowed for this case
-!
-!              CALL XERBLA( 'DLARFT_UT', 3 )
-!              RETURN
-!           END IF
-!           CALL DLARFT_LVL2(DIRECT, STOREV, N, K, V, LDV, TAU,
-!    $            T, LDT)
-!           RETURN
-!        END IF
-!     END DO
-*
 *     If we reach here, then we guarantee the calls to dtrtri will not fail
 *
 *     Determine what kind of Q we need to compute
@@ -277,6 +246,37 @@
 *     compute the T that we would normally compute
 *
       RQ = (.NOT.RQT).AND.(.NOT.COLV)
+*
+*     Beginning of executable statements
+*
+*     This method is only viable for non-singular V matrices with
+*     non-zero associated tau values. We know for a fact that V is
+*     always non-singular as V is unit triangular, however tau can
+*     be 0. Thus, if we detect this case, we bail to the level-2 BLAS
+*     implementation, which is known to work in these instances, which
+*     will never bail back to this implementation.
+*
+*     Note: We are not bailing to the standard larft as that subroutine
+*     may call this subroutine as a terminating case.
+*     We could also just error out by calling XERBLA if this is desired
+*
+      INVT = LSAME(APPLYT, 'M')
+!     DO I = 1, K
+!        IF( TAU(I).EQ.ZERO.and.(.not.qr) ) THEN
+!           IF (.NOT.INVT) THEN
+!
+!              There are no existing routines that perform this operation, so we
+!              error out. We report jobt as the incorrect flag since APPLYT='M' is
+!              allowed for this case
+!
+!              CALL XERBLA( 'DLARFT_UT', 3 )
+!              RETURN
+!           END IF
+!           CALL DLARFT_LVL2(DIRECT, STOREV, N, K, V, LDV, TAU,
+!    $            T, LDT)
+!           RETURN
+!        END IF
+!     END DO
 *
 *     Note that in the following cases, we use ut(A) and lt(A) to
 *     denote the upper and lower triangular components of the matrix A
@@ -326,7 +326,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL DTRTI2_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
+            CALL DTRTRI_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(LQ) THEN
 *
