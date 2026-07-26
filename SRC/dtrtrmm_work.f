@@ -292,8 +292,10 @@ c     Cost: 2/21 * (3n^3 + 7n^2 - 10) + 2
                         work(i,j) = v(k+j, i)
                      end do
                   end do
+                  ! W = T_{11} * V_{21}**T
                   call dtrmm('left', uplo, 'no transpose', diagt,
      $               k, n-k, alpha, t, ldt, work, ldwork)
+                  ! T_{12} = T_{12} = T_{12}*V_{22}**T
                   CALL DTRMM('Right', 'Lower', TRANSV, DIAGV, K,
      $                     N-K, ALPHA, V(K+1, K+1), LDV, T(1, K+1), LDT)
 *
@@ -333,10 +335,17 @@ c     Cost: 2/21 * (3n^3 + 7n^2 - 10) + 2
 *
 *                 T_{12} = \alpha T_{12}*V_{22}
 *
+                  ! W = V_{12}
+                  call dlacpy('all', k, n-k, v(1,k+1), ldv,
+     $               work, ldwork)
+                  ! W = T_{11}*W
+                  call dtrmm('left', uplo, 'no transpose', diagt,
+     $               k, n-k, alpha, t, ldt, work, ldwork)
+                  ! T_{12} = T_{12} = T_{12}*V_{22}
                   CALL DTRMM('Right', 'Upper', TRANSV, DIAGV, K,
      $                     N-K, ALPHA, V(K+1, K+1), LDV, T(1, K+1), LDT)
 *
-*                 T_{12} = \alpha T_{11}*V_{21}**T + T_{12}
+*                 T_{12} = \alpha T_{11}*V_{12} + T_{12}
 *
                   CALL DTRMMOOP('Left', UPLO, 'No Transpose',
      $                     TRANSV, DIAGT, K, N-K, ALPHA, T, LDT,
@@ -372,6 +381,15 @@ c     Cost: 2/21 * (3n^3 + 7n^2 - 10) + 2
 *
 *                 T_{12} = \alpha V_{11}**T*T_{12}          (DTRMM)
 *                 T_{12} = \alpha V_{21}**T*T_{22} + T_{12} (DTRMMOOP)
+                  ! W = V_{21}**T
+                  do i = 1, k
+                     do j = 1, n-k
+                        work(i,j) = v(k+j,i)
+                     end do
+                  end do
+                  ! W = W*T_22
+                  call dtrmm('right', uplo, 'no transpose', diagv,
+     $               n-k, alpha, t(k+1,k+1), ldt, work, ldwork)
 *
 *                 T_{12} = \alpha V_{11}**T*T_{12}
 *
@@ -380,9 +398,11 @@ c     Cost: 2/21 * (3n^3 + 7n^2 - 10) + 2
 *
 *                 T_{12} = \alpha V_{21}**T*T_{22} + T_{12}
 *
-                  CALL DTRMMOOP('Right', UPLO, 'No Transpose',
-     $                     TRANSV, DIAGT, K, N-K, ALPHA, T(K+1, K+1),
-     $                     LDT, V(K+1, 1), LDV, ONE, T(1, K+1), LDT)
+                  do i = 1, k
+                     do j = 1, n-k
+                        t(i,j) = t(i,j) + work(i,j)
+                     end do
+                  end do
                ELSE
 *
 *                 We are computing T = V*T, which we break down as follows
@@ -409,6 +429,13 @@ c     Cost: 2/21 * (3n^3 + 7n^2 - 10) + 2
 *
 *                 T_{12} = \alpha V_{11}*T_{12}          (DTRMM)
 *                 T_{12} = \alpha V_{12}*T_{22} + T_{12} (DTRMMOOP)
+*
+                  ! W = V_{12}
+                  call dlacpy('all', k, n-k, v(1,k+1), ldv,
+     $               work, ldwork)
+                  ! W = W*T_22
+                  call dtrmm('right', uplo, 'no transpose', diagv,
+     $               n-k, alpha, t(k+1,k+1), ldt, work, ldwork)
 *
 *                 T_{12} = \alpha V_{11}*T_{12}
 *

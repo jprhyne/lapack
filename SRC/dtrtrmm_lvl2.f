@@ -111,7 +111,7 @@
 *>           be set before entry.
 *> \endverbatim
 *>
-*> \param[in] T
+*> \param[in,out] T
 *> \verbatim
 *>          T is DOUBLE PRECISION array, dimension ( LDT, N )
 *>           Before entry with UPLO = 'U' or 'u', the leading k-by-k
@@ -123,7 +123,8 @@
 *>           triangular matrix and the strictly upper triangular part of
 *>           T is not referenced.
 *>           Note that when  DIAGT = 'U' or 'u',  the diagonal elements of
-*>           T  are not referenced either,  but are assumed to be  unity.
+*>           T  are not referenced either,  but are assumed to be  unit.
+*>           But are set explicitly on exit
 *> \endverbatim
 *>
 *> \param[in] LDT
@@ -188,6 +189,7 @@ c     Cost: 2/21 * (3n^3 + 7n^2 - 10) + 2
 *        ..
 *        .. Local Scalars ..
          INTEGER           K, I
+         CHARACTER         transv_2, uplov
          LOGICAL           TLEFT, TUPPER, VTRANS, VUNIT, TUNIT
 *        ..
 *        .. Local Parameters ..
@@ -207,20 +209,40 @@ c     Cost: 2/21 * (3n^3 + 7n^2 - 10) + 2
             CALL DLASET(UPLO, N, N, ZERO, ZERO, T, LDT)
             RETURN
          END IF
-         TUNIT = LSAME(DIAGT, 'U')
-         VUNIT = LSAME(DIAGV, 'U')
 *
-*        Terminating Case
+*        Trivial Case
 *
          IF(N.LE.0) THEN
             RETURN
          END IF
 *
-*        Recursive case
+*        Convert our character flags into more understandible logical flags
 *
          TUPPER = LSAME(UPLO,'U')
          TLEFT  = LSAME(SIDE,'L')
-         VTRANS = LSAME(TRANSV,'T').OR.LSAME(TRANSV,'C')
+         VUNIT = LSAME(DIAGV, 'U')
+         TUNIT = LSAME(DIAGT, 'U')
+         VTRANS = LSAME(transv,'t').or.lsame(transv,'c')
+
+         ! Must flip the transpose flag for V in some cases
+         ! since dtrmv only accepts right multiplication from
+         ! vectors.
+         transv_2 = 't'
+         if( vtrans ) then
+            transv_2 = 'n'
+         end if
+         ! We need to know if v is upper or lower for passing into dtrmv
+         ! if op(v) = v, then v is the same as T
+         ! otherwise we must flip the value of uplo
+         if( vtrans ) then
+            if( tupper ) then
+               uplov = 'l'
+            else
+               uplov = 'u'
+            end if
+         else
+            uplov = uplo
+         end if
          IF(TUPPER) THEN
 *
 *           T is upper triangular
@@ -229,159 +251,22 @@ c     Cost: 2/21 * (3n^3 + 7n^2 - 10) + 2
 *
 *              Compute T = T*op(V)
 *
-               IF(VTRANS) THEN
-*
-*                 We are computing T = T*V**T, which we break down as follows
-*                 |--------------|           |--------------|   |--------------------|
-*                 |T_{11}  T_{12}|           |T_{11}  T_{12}|   |V_{11}**T  V_{21}**T|
-*                 |0       T_{22}| = \alpha  |0       T_{22}| * |0          V_{22}**T|
-*                 |--------------|           |--------------|   |--------------------|
-*
-*                 Where
-*                 T_{11}\in\R^{k\times k}    T_{12}\in\R^{k\times n-k}
-*                                            T_{22}\in\R^{n-k\times n-k}
-*
-*                 V_{11}\in\R^{k\times k}
-*                 V_{21}\in\R^{n-k\times k}  V_{22}\in\R^{n-k\times n-k}
-*
-*                 Which means that we get
-*
-*                 T_{11} = \alpha T_{11}*V_{11}**T
-*                 T_{12} = \alpha T_{11}*V_{21}**T + \alpha T_{12}*V_{22}**T
-*                 T_{22} = \alpha T_{22}*V_{22}**T
-*
-*                 Computing T_{11} and T_{22} are just recursive calls to this
-*                 routine, but we can break down computing T_{12} as follows
-*
-*                 T_{12} = \alpha T_{12}*V_{22}**T          (DTRMM)
-*                 T_{12} = \alpha T_{11}*V_{21}**T + T_{12} (DTRMMOOP)
-*
-*                 T_{12} = \alpha T_{12}*V_{22}**T
-*
-                  ! We do this row-wise
-                  do i = 1, n
-                     ! t(i,i:n) = alpha t(i,i:n)
-                     call dscal(n-i+1, alpha, t(i,i), ldt)
-                     ! t(i,i:n) = V(i:n,i:n) t(i,i:n)
-                     call dtrmv('Lower', 'No transpose', diagv,
-     $                  n-i+1, v(i,i), ldv, t(i,i), ldt)
-                  end do
+               IF(TUNIT) THEN
+                  ! DO later
                ELSE
-*
-*                 We are computing T = T*V, which we break down as follows
-*                 |--------------|           |--------------|   |-------------|
-*                 |T_{11}  T_{12}|           |T_{11}  T_{12}|   |V_{11} V_{12}|
-*                 |0       T_{22}| = \alpha  |0       T_{22}| * |0      V_{22}|
-*                 |--------------|           |--------------|   |-------------|
-*
-*                 Where
-*                 T_{11}\in\R^{k\times k}    T_{12}\in\R^{k\times n-k}
-*                                            T_{22}\in\R^{n-k\times n-k}
-*
-*                 V_{11}\in\R^{k\times k}    V_{12}\in\R^{k\times n-k}
-*                                            V_{22}\in\R^{n-k\times n-k}
-*
-*                 Which means that we get
-*
-*                 T_{11} = \alpha T_{11}*V_{11}
-*                 T_{12} = \alpha T_{11}*V_{12} + \alpha T_{12}*V_{22}
-*                 T_{22} = \alpha T_{22}*V_{22}
-*
-*                 Computing T_{11} and T_{22} are just recursive calls to this
-*                 routine, but we can break down computing T_{12} as follows
-*
-*                 T_{12} = \alpha T_{12}*V_{22}          (DTRMM)
-*                 T_{12} = \alpha T_{11}*V_{12} + T_{12} (DTRMMOOP)
-*
-*                 T_{12} = \alpha T_{12}*V_{22}
-*
-                  ! We do this row-wise
                   do i = 1, n
-                     ! t(i,i:n) = alpha t(i,i:n)
-                     call dscal(n-i+1, alpha, t(i,i), ldt)
-                     ! t(i,i:n) = V(i:n,i:n) t(i,i:n)
-                     call dtrmv('Upper', 'Transpose', diagv,
-     $                  n-i+1, v(i,i), ldv, t(i,i), ldt)
+                     ! scale the current row of t by alpha
+                     call dscal( n-i+1, alpha, t(i,i), ldt )
+                     call dtrmv( uplov, transv_2, diagv, n-i+1,
+     $                  v(i,i), ldv, t(i,i), ldt )
                   end do
                END IF
             ELSE
 *
 *              Compute T = op(V)*T
 *
-               IF(VTRANS) THEN
-*
-*                 We are computing T = V**T*T, which we break down as follows
-*                 |--------------|           |--------------------|   |--------------|
-*                 |T_{11}  T_{12}|           |V_{11}**T  V_{21}**T|   |T_{11}  T_{12}|
-*                 |0       T_{22}| = \alpha  |0          V_{22}**T| * |0       T_{22}|
-*                 |--------------|           |--------------------|   |--------------|
-*
-*                 Where
-*                 T_{11}\in\R^{k\times k}    T_{12}\in\R^{k\times n-k}
-*                                            T_{22}\in\R^{n-k\times n-k}
-*
-*                 V_{11}\in\R^{k\times k}
-*                 V_{21}\in\R^{n-k\times k}  V_{22}\in\R^{n-k\times n-k}
-*
-*                 Which means that we get
-*
-*                 T_{11} = \alpha V_{11}**T*T_{11}
-*                 T_{12} = \alpha V_{11}**T*T_{12} + \alpha V_{21}**T*T_{22}
-*                 T_{22} = \alpha V_{22}**T*T_{22}
-*
-*                 Computing T_{11} and T_{22} are just recursive calls to this
-*                 routine, but we can break down computing T_{12} as follows
-*
-*                 T_{12} = \alpha V_{11}**T*T_{12}          (DTRMM)
-*                 T_{12} = \alpha V_{21}**T*T_{22} + T_{12} (DTRMMOOP)
-*
-*                 T_{12} = \alpha V_{11}**T*T_{12}
-*
-                  CALL DTRMM('Left', 'Lower', TRANSV, DIAGV, K,
-     $                     N-K, ALPHA, V, LDV, T(1, K+1), LDT)
-*
-*                 T_{12} = \alpha V_{21}**T*T_{22} + T_{12}
-*
-                  CALL DTRMMOOP('Right', UPLO, 'No Transpose',
-     $                     TRANSV, DIAGT, K, N-K, ALPHA, T(K+1, K+1),
-     $                     LDT, V(K+1, 1), LDV, ONE, T(1, K+1), LDT)
-               ELSE
-*
-*                 We are computing T = V*T, which we break down as follows
-*                 |--------------|           |--------------|   |--------------|
-*                 |T_{11}  T_{12}|           |V_{11}  V_{12}|   |T_{11}  T_{12}|
-*                 |0       T_{22}| = \alpha  |0       V_{22}| * |0       T_{22}|
-*                 |--------------|           |--------------|   |--------------|
-*
-*                 Where
-*                 T_{11}\in\R^{k\times k}    T_{12}\in\R^{k\times n-k}
-*                                            T_{22}\in\R^{n-k\times n-k}
-*
-*                 V_{11}\in\R^{k\times k}    V_{12}\in\R^{k\times n-k}
-*                                            V_{22}\in\R^{n-k\times n-k}
-*
-*                 Which means that we get
-*
-*                 T_{11} = \alpha V_{11}*T_{11}
-*                 T_{12} = \alpha V_{11}*T_{12} + \alpha V_{12}*T_{22}
-*                 T_{22} = \alpha V_{22}*T_{22}
-*
-*                 Computing T_{11} and T_{22} are just recursive calls to this
-*                 routine, but we can break down computing T_{12} as follows
-*
-*                 T_{12} = \alpha V_{11}*T_{12}          (DTRMM)
-*                 T_{12} = \alpha V_{12}*T_{22} + T_{12} (DTRMMOOP)
-*
-*                 T_{12} = \alpha V_{11}*T_{12}
-*
-                  CALL DTRMM('Left', 'Upper', TRANSV, DIAGV, K,
-     $                     N-K, ALPHA, V, LDV, T(1, K+1), LDT)
-*
-*                 T_{12} = \alpha V_{12}*T_{22} + T_{12} (DTRMMOOP)
-*
-                  CALL DTRMMOOP('Right', UPLO, 'No Transpose',
-     $                     TRANSV, DIAGT, K, N-K, ALPHA, T(K+1, K+1),
-     $                     LDT, V(1, K+1), LDV, ONE, T(1, K+1), LDT)
+               IF(VTRANS) THEN ! op(V) = V**T
+               ELSE ! op(V) = V
                END IF
             END IF
          ELSE
@@ -392,174 +277,17 @@ c     Cost: 2/21 * (3n^3 + 7n^2 - 10) + 2
 *
 *              Compute T = T*op(V)
 *
-               IF(VTRANS) THEN
-*
-*                 We are computing T = T*V**T, which we break down as follows
-*                 |--------------|           |--------------|   |--------------------|
-*                 |T_{11}  0     |           |T_{11}  0     |   |V_{11}**T  0        |
-*                 |T_{21}  T_{22}| = \alpha  |T_{21}  T_{22}| * |V_{12}**T  V_{22}**T|
-*                 |--------------|           |--------------|   |--------------------|
-*
-*                 Where
-*                 T_{11}\in\R^{k\times k}
-*                 T_{21}\in\R^{n-k\times k}  T_{22}\in\R^{n-k\times n-k}
-*
-*                 V_{11}\in\R^{k\times k}    V_{12}\in\R^{k\times n-k}
-*                                            V_{22}\in\R^{n-k\times n-k}
-*
-*                 Which means that we get
-*
-*                 T_{11} = \alpha T_{11}*V_{11}**T
-*                 T_{21} = \alpha T_{21}*V_{11}**T + \alpha T_{22}*V_{12}**T
-*                 T_{22} = \alpha T_{22}*V_{22}**T
-*
-*                 Computing T_{11} and T_{22} are just recursive calls to this
-*                 routine, but we can break down computing T_{21} as follows
-*
-*                 T_{21} = \alpha T_{21}*V_{11}**T          (DTRMM)
-*                 T_{21} = \alpha T_{22}*V_{12}**T + T_{21} (DTRMMOOP)
-*
-*                 T_{21} = \alpha T_{21}*V_{11}**T
-*
-                  CALL DTRMM('Right', 'Upper', TRANSV, DIAGV, N-K,
-     $                     K, ALPHA, V, LDV, T(K+1, 1), LDT)
-*
-*                 T_{21} = \alpha T_{22}*V_{12}**T + T_{21}
-*
-                  CALL DTRMMOOP('Left', UPLO, 'No Transpose',
-     $                     TRANSV, DIAGT, N-K, K, ALPHA, T(K+1, K+1),
-     $                     LDT, V(1, K+1), LDV, ONE, T(K+1, 1), LDT)
-               ELSE
-*
-*                 We are computing T = T*V, which we break down as follows
-*                 |--------------|           |--------------|   |-------------|
-*                 |T_{11}  0     |           |T_{11}  0     |   |V_{11} 0     |
-*                 |T_{21}  T_{22}| = \alpha  |T_{21}  T_{22}| * |V_{21} V_{22}|
-*                 |--------------|           |--------------|   |-------------|
-*
-*                 Where
-*                 T_{11}\in\R^{k\times k}
-*                 T_{21}\in\R^{n-k\times k}  T_{22}\in\R^{n-k\times n-k}
-*
-*                 V_{11}\in\R^{k\times k}
-*                 V_{21}\in\R^{n-k\times k}  V_{22}\in\R^{n-k\times n-k}
-*
-*                 Which means that we get
-*
-*                 T_{11} = \alpha T_{11}*V_{11}
-*                 T_{21} = \alpha T_{21}*V_{11} + \alpha T_{22}*V_{21}
-*                 T_{22} = \alpha T_{22}*V_{22}
-*
-*                 Computing T_{11} and T_{22} are just recursive calls to this
-*                 routine, but we can break down computing T_{21} as follows
-*
-*                 T_{21} = \alpha T_{21}*V_{11}          (DTRMM)
-*                 T_{21} = \alpha T_{22}*V_{21} + T_{21} (DTRMMOOP)
-*
-*                 T_{21} = \alpha T_{21}*V_{11}
-*
-                  CALL DTRMM('Right', 'Lower', TRANSV, DIAGV, N-K,
-     $                     K, ALPHA, V, LDV, T(K+1, 1), LDT)
-*
-*                 T_{21} = \alpha T_{22}*V_{12} + T_{21}
-*
-                  CALL DTRMMOOP('Left', UPLO, 'No Transpose',
-     $                     TRANSV, DIAGT, N-K, K, ALPHA, T(K+1, K+1),
-     $                     LDT, V(K+1, 1), LDV, ONE, T(K+1, 1), LDT)
+               IF(VTRANS) THEN ! op(V) = V**T
+               ELSE ! op(V) = V
                END IF
             ELSE
 *
 *              Compute T = op(V)*T
 *
-               IF(VTRANS) THEN
-*
-*                 We are computing T = V**T*T, which we break down as follows
-*                 |--------------|           |--------------------|   |--------------|
-*                 |T_{11}  0     |           |V_{11}**T  0        |   |T_{11}  0     |
-*                 |T_{21}  T_{22}| = \alpha  |V_{12}**T  V_{22}**T| * |T_{21}  T_{22}|
-*                 |--------------|           |--------------------|   |--------------|
-*
-*                 Where
-*                 T_{11}\in\R^{k\times k}
-*                 T_{21}\in\R^{n-k\times k}  T_{22}\in\R^{n-k\times n-k}
-*
-*                 V_{11}\in\R^{k\times k}    V_{12}\in\R^{k\times n-k}
-*                                            V_{22}\in\R^{n-k\times n-k}
-*
-*                 Which means that we get
-*
-*                 T_{11} = \alpha V_{11}**T*T_{11}
-*                 T_{21} = \alpha V_{12}**T*T_{11} + \alpha V_{22}**T*T_{21}
-*                 T_{22} = \alpha V_{22}**T*T_{22}
-*
-*                 Computing T_{11} and T_{22} are just recursive calls to this
-*                 routine, but we can break down computing T_{21} as follows
-*
-*                 T_{21} = \alpha V_{22}**T*T_{21}          (DTRMM)
-*                 T_{21} = \alpha V_{12}**T*T_{11} + T_{21} (DTRMMOOP)
-*
-*                 T_{21} = \alpha V_{22}**T*T_{21}
-*
-                  CALL DTRMM('Left', 'Upper', TRANSV, DIAGV, N-K, K,
-     $                     ALPHA, V(K+1, K+1), LDV, T(K+1, 1), LDT)
-*
-*                 T_{21} = \alpha V_{12}**T*T_{11} + T_{21}
-*
-                  CALL DTRMMOOP('Right', UPLO, 'No Transpose',
-     $                     TRANSV, DIAGT, N-K, K, ALPHA, T, LDT,
-     $                     V(1, K+1), LDV, ONE, T(K+1, 1), LDT)
-               ELSE
-*
-*                 We are computing T = V*T, which we break down as follows
-*                 |--------------|           |-------------|   |--------------|
-*                 |T_{11}  0     |           |V_{11} 0     |   |T_{11}  0     |
-*                 |T_{21}  T_{22}| = \alpha  |V_{21} V_{22}| * |T_{21}  T_{22}|
-*                 |--------------|           |-------------|   |--------------|
-*
-*                 Where
-*                 T_{11}\in\R^{k\times k}
-*                 T_{21}\in\R^{n-k\times k}  T_{22}\in\R^{n-k\times n-k}
-*
-*                 V_{11}\in\R^{k\times k}
-*                 V_{21}\in\R^{n-k\times k}  V_{22}\in\R^{n-k\times n-k}
-*
-*                 Which means that we get
-*
-*                 T_{11} = \alpha V_{11}*T_{11}
-*                 T_{21} = \alpha V_{21}*T_{11} + \alpha V_{22}*T_{21}
-*                 T_{22} = \alpha V_{22}*T_{22}
-*
-*                 Computing T_{11} and T_{22} are just recursive calls to this
-*                 routine, but we can break down computing T_{12} as follows
-*
-*                 T_{21} = \alpha V_{22}*T_{21}          (DTRMM)
-*                 T_{21} = \alpha V_{12}*T_{11} + T_{21} (DTRMMOOP)
-*
-*                 T_{21} = \alpha V_{22}*T_{12}
-*
-                  CALL DTRMM('Left', 'Lower', TRANSV, DIAGV, N-K, K,
-     $                     ALPHA, V(K+1, K+1), LDV, T(K+1, 1), LDT)
-*
-*                 T_{21} = \alpha V_{12}*T_{11} + T_{21}
-*
-                  CALL DTRMMOOP('Right', UPLO, 'No Transpose',
-     $                     TRANSV, DIAGT, N-K, K, ALPHA, T, LDT,
-     $                     V(K+1, 1), LDV, ONE, T(K+1, 1), LDT)
+               IF(VTRANS) THEN ! op(V) = V**T
+               ELSE ! op(V) = V
                END IF
             END IF
          END IF
-*
-*        Since in all the above cases, we compute T_{11} and T_{22}
-*        the same, we pass in our flags and call this routine recursively
-*
-*        Compute T_{11} recursively
-*
-         CALL DTRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, K, ALPHA,
-     $         T, LDT, V, LDV)
-*
-*        Compute T_{22} recursively
-*
-         CALL DTRTRMM(SIDE, UPLO, TRANSV, DIAGT, DIAGV, N-K, ALPHA,
-     $         T(K+1, K+1), LDT, V(K+1, K+1), LDV)
 
       END SUBROUTINE

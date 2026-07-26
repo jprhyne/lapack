@@ -386,7 +386,7 @@
 
                ! Compute X_{12}
                call dtrsm_mod( 'left', 'upper', 'transpose', diag,
-     $            k, n-k, alpha, a, lda, b(1,k+1), kdb )
+     $            k, n-k, alpha, a, lda, b(1,k+1), ldb )
 
                !Update B_{22}
                call dgemm( 'transpose', 'no transpose', m-k, n-k, k,
@@ -510,7 +510,7 @@
 
                ! solve for X_{11}
                call dtrsm_mod('left', 'lower', 'transpose', diag,
-     $            one, a, lda, b, ldb)
+     $            k, k, one, a, lda, b, ldb)
 
                ! Solve for X_{22}
                call dtrsm_mod('left', 'lower', 'transpose', diag,
