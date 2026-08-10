@@ -102,7 +102,7 @@
       LOGICAL           SOLVET
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          DTRMM, DTRTRMM DTRTRI, DLUMM
+      EXTERNAL          DTRMM, DTRTRMM, DTRTRI, DLUMM
 *     ..
 *     .. External Functions ..
       LOGICAL           LSAME
