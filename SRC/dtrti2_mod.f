@@ -137,7 +137,6 @@
       EXTERNAL           LSAME
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           DSCAL, DTRMV, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MAX
@@ -167,53 +166,62 @@
 *
 *        Compute inverse of upper triangular matrix.
 *
-         DO 10 J = 1, N
+         DO J = n, 1, -1
+            ! Determine if we have a 0 diagonal.
+            ! If not, we compute this column as normal
+            ! Otherwise we set the current column to 0.
+            ! Then all 0s should propogate to the right in the
+            ! same column
             IF( UNIT ) THEN
-               AJJ = -ONE
-            ELSE IF( A(J,J).EQ.ZERO ) THEN
-               AJJ = ZERO
+               call dscal(j-1, -ONE, A(1,J), 1)
             ELSE
-               A( J, J ) = ONE / A( J, J )
-               AJJ = -A( J, J )
+               ! This is the only case where we need to check
+               ! for zero diagonals
+               if( A(J,J).EQ.ZERO ) then
+                  ! Set this column to 0
+                  call dlaset('a', j, 1, zero, zero, a(1,j), lda)
+               else
+                  ! In this case we must manually invert the diagonal
+                  ! element then propogate
+                  A(J,J) = ONE / A(J,J)
+                  call dscal(j-1, -A(J,J), A(1,J), 1)
+               end if
             END IF
-*
-*           Compute elements 1:j-1 of j-th column.
-*
-            IF( AJJ.NE.ZERO ) THEN
-               CALL DTRMV( 'Upper', 'No transpose', DIAG, J-1, A, LDA,
-     $                     A( 1, J ), 1 )
-               CALL DSCAL( J-1, AJJ, A( 1, J ), 1 )
-            ELSE
-               CALL DLASET( 'A', J-1, 1, ZERO, ZERO, A(1,J), LDA )
-            END IF
-   10    CONTINUE
+            ! Regardless of what we have done above, we want to replace
+            ! the current column of A with the solution to
+            ! A(1:j-1,1:j-1) x = A(1:j-1,j) and store this
+            ! inside A(1:j-1,j) but potentially having some
+            ! zeros on the diagonal of A, so we call our modified routine
+            call DTRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
+     $         j-1, 1, one, a, lda, a(1,j), lda)
+         END DO
       ELSE
 *
 *        Compute inverse of lower triangular matrix.
 *
-         DO 20 J = N, 1, -1
-            IF( UNIT ) THEN
-               AJJ = -ONE
-            ELSE IF( A(J,J).EQ.ZERO ) THEN
-               AJJ = ZERO
-            ELSE
-               A( J, J ) = ONE / A( J, J )
-               AJJ = -A( J, J )
-            END IF
-            IF( J.LT.N ) THEN
-*
-*              Compute elements j+1:n of j-th column.
-*
-               IF( AJJ.NE.ZERO ) THEN
-                  CALL DTRMV( 'Lower', 'No transpose', DIAG, N-J,
-     $                        A( J+1, J+1 ), LDA, A( J+1, J ), 1 )
-                  CALL DSCAL( N-J, AJJ, A( J+1, J ), 1 )
-               ELSE
-                  CALL DLASET('A', N-J, 1, ZERO, ZERO,
-     $               A( J+1,J ), LDA )
-               END IF
-            END IF
-   20    CONTINUE
+         DO J = 1, n
+            if( UNIT ) THEN
+               call dscal(n-j, -ONE, A(J+1,J), 1)
+            else
+               if( A(j,j).eq.zero ) then
+                  ! Set this column to 0
+                  call dlaset('a', n-j, 1, zero, zero, a(j+1,j), lda)
+                  !call dlaset('a', 1, j-1, zero, zero, a(j+1,1), lda)
+               else
+                  ! In this case we must manually invert the diagonal
+                  ! element then propogate
+                  A(J,J) = ONE / A(J,J)
+                  call dscal(n-j, -A(J,J), A(j+1,J), 1)
+               end if
+            end if
+            ! Regardless of what we have done above, we want to replace
+            ! the current column of A with the solution to
+            ! A(j+1:n,j+1:n) x = A(j+1:n,j) and store this
+            ! inside A(j+1:n,j) but potentially having some
+            ! zeros on the diagonal of A, so we call our modified routine
+            call dtrsm_mod('Left', 'Lower', 'No Transpose', DIAG,
+     $         n-j, 1, one, a(j+1,j+1), lda, a(j+1,j), lda)
+         end do
       END IF
 *
       RETURN

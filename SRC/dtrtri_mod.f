@@ -134,7 +134,6 @@
       EXTERNAL           LSAME, ILAENV
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL           DTRMM, DTRSM, DTRTI2, XERBLA
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MAX, MIN
@@ -177,59 +176,28 @@
 
       K = N/2
 
-      ! X_{11} and X_{22} are computed with the same inputs everytime
-      call DTRTRI_MOD(uplo, diag, n-k, a(k+1,k+1), lda, info)
       if( upper ) then
-*
-*        Break A apart as
-*              |---------------|
-*        A =   | A_{11} A_{12} |
-*              | 0      A_{22} |
-*              |---------------|
-*
-*              Then we want to overwrite A with the solution to
-*
-*              |---------------|    |---------------|   |-----|
-*        A =   | A_{11} A_{12} | *  | X_{11} X_{12} | = | I 0 |
-*              | 0      A_{22} |    | 0      X_{22} |   | 0 I |
-*              |---------------|    |---------------|   |-----|
-*
-         ! X_{22} is computed above already
-
-         ! if diag = 'u', then x is also unit
-         call dtrmm('Right', 'Upper', 'No Transpose', diag, k, n-k,
-     $         -one, a(k+1,k+1), lda, a(1,k+1), lda)
-
-         ! finish computing X_{12}
-         call dtrsm_mod( 'Left', 'Upper', 'No Transpose', diag, k, n-k,
-     &         one, a, lda, a(1,k+1), lda )
-
-         ! compute X_{11} afterwards
-      else
-*
-*        Break A apart as
-*              |---------------|
-*        A =   | A_{11} 0      |
-*              | A_{21} A_{22} |
-*              |---------------|
-*
-*              Then we want to overwrite A with the solution to
-*
-*              |---------------|    |---------------|   |-----|
-*        A =   | X_{11} 0      | *  | A_{11} 0      | = | I 0 |
-*              | X_{21} X_{22} |    | A_{21} A_{22} |   | 0 I |
-*              |---------------|    |---------------|   |-----|
-*
-         ! X_{22} is computed already
-         ! if diag = 'u', then x is also unit
-         call dtrmm('Left', 'Lower', 'No Transpose', diag, n-k, k,
-     $      -one, a(k+1,k+1), lda, a(k+1,1), lda)
-
-         ! finish computing X_{21}
-         call dtrsmi_mod('Right', 'Lower', 'No Transpose', diag, n-k, k,
-     $      one, a, lda, a(1,k+1), lda)
+         ! Compute X_{22}
+         call DTRTRI_MOD('Upper', DIAG, N-K, A(K+1,K+1), LDA, INFO)
+         ! Propogate to A_{12}
+         call dtrmm('Right', 'Upper', 'No Transpose', DIAG, K, N-K,
+     $      -one, a(k+1,k+1), lda, a(1,k+1), lda)
+         ! Solve for X_{12}
+         call DTRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
+     $      k, n-k, one, a, lda, a(1,k+1), lda)
+         ! Solve for X_{11}
+         call DTRTRI_MOD('Upper', DIAG, K, A, lda, info)
+      else ! A is lower
+         ! Compute X_{11}
+         call DTRTRI_MOD('Lower', DIAG, k, a, lda, info)
+         ! Propogate to A_{21}
+         call DTRMM('Right', 'Lower', 'No Transpose', DIAG, N-K, k,
+     $      -one, a, lda, a(k+1,1), lda)
+         ! Solve for X_{21}
+         call DTRSM_MOD('Left', 'Lower', 'No Transpose', DIAG,
+     $      n-k, k, one, a(k+1,k+1), lda, a(k+1,1), lda)
+         ! Compute X_{22}
+         call DTRTRI_MOD('Lower', DIAG, n-k, a(k+1,k+1), lda, info)
       end if
-
-      call DTRTRI_MOD(uplo, diag, k, a, lda, info)
 
       END SUBROUTINE
