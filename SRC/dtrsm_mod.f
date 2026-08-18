@@ -379,7 +379,7 @@
      $            k, k, alpha, a, lda, b, ldb )
                ! Update B_{21}
                call dgemm( 'transpose', 'no transpose', m-k, k, k,
-     $            -one, a(1,k+1), lda, b, ldb, alpha, b(k+1,1), ldb)
+     $            neg_one, a(1,k+1), lda, b, ldb, alpha, b(k+1,1), ldb)
                ! Solve for X_{21}
                call dtrsm_mod( 'left', 'upper', 'transpose', diag,
      $            m-k, k, one, a(k+1,k+1), lda, b(k+1,1), ldb )
@@ -390,7 +390,7 @@
 
                !Update B_{22}
                call dgemm( 'transpose', 'no transpose', m-k, n-k, k,
-     $            -one, a(1,k+1), lda, b(1,k+1), ldb, alpha,
+     $            neg_one, a(1,k+1), lda, b(1,k+1), ldb, alpha,
      $            b(k+1,k+1), ldb )
                ! Solve for B_{22}
                call dtrsm_mod( 'left', 'upper', 'transpose', diag,
@@ -449,7 +449,7 @@
 
                ! Update B_{21}
                call dgemm('no transpose', 'no transpose', m-k, k, k,
-     $            -one, a(k+1,1), lda, b, ldb, alpha, b(k+1,1), ldb)
+     $            neg_one, a(k+1,1), lda, b, ldb, alpha, b(k+1,1), ldb)
                ! Solve for X_{21}
                call dtrsm_mod('left', 'lower', 'no transpose',
      $            diag, m-k, k, one, a(k+1,k+1), lda, b(k+1,1), ldb)
@@ -460,7 +460,7 @@
 
                ! Update B_{22}
                call dgemm('no transpose', 'no transpose', m-k, n-k,
-     $            k, -one, a(k+1,1), lda, b(1,k+1), ldb, alpha,
+     $            k, neg_one, a(k+1,1), lda, b(1,k+1), ldb, alpha,
      $            b(k+1,k+1), ldb)
                ! Solve for X_{22}
                call dtrsm_mod('left', 'lower', 'no transpose', diag,
@@ -505,7 +505,7 @@
 
                ! Update B_{11}
                call dgemm('transpose', 'no transpose', k, k, m-k,
-     $            -one, a(k+1,1), lda, b(k+1,1), ldb, alpha,
+     $            neg_one, a(k+1,1), lda, b(k+1,1), ldb, alpha,
      $            b, ldb)
 
                ! solve for X_{11}
@@ -518,7 +518,7 @@
 
                ! Update B_{12}
                call dgemm('transpose', 'no transpose', k, n-k, m-k,
-     $            -one, a(k+1, 1), lda, b(k+1,k+1), ldb, alpha,
+     $            neg_one, a(k+1, 1), lda, b(k+1,k+1), ldb, alpha,
      $            b(1,k+1), ldb)
 
                ! Solve for X_{12}
@@ -527,6 +527,221 @@
             END IF
          END IF
       ELSE ! A is on the right
+         if (UPPER) then
+            if( notrans ) then
+*
+*              Break A and B apart as
+*                    |-----------------|        |-----------------|
+*              A =   | A_{11} A_{12}   |  B =   | B_{11} B_{12}   |
+*                    | 0      A_{22}   |        | B_{21} B_{22}   |
+*                    |-----------------|        |-----------------|
+*
+*              Where
+*
+*              A_{11}\in\R^{k\times k} A_{12}\in\R^{  k\times n-k}
+*                                      A_{22}\in\R^{n-k\times n-k}
+*
+*              B_{11}\in\R^{  k\times k}  B_{12}\in\R^{  k\times n-k}
+*              B_{21}\in\R^{m-k\times k}  B_{22}\in\R^{m-k\times n-k}
+*
+*              We want to solve the system below replacing B with X
+*
+*              |---------------| |---------------|          |---------------|
+*              | X_{11} X_{12} | | A_{11} A_{12} | = \alpha | B_{11} B_{12} |
+*              | X_{21} X_{22} | | 0      A_{22} |          | B_{21} B_{22} |
+*              |---------------| |---------------|          |---------------|
+*
+*              Where X (and it's submatrix components) are the same shape as B
+*              and its respective submatrices
+*
+*              This gives us the following system (overwriting X onto B)
+*
+*              X_{11} A_{11}                 = \alpha B_{11}
+*              X_{11} A_{12} + X_{12} A_{22} = \alpha B_{12}
+*
+*              X_{21} A_{11}                 = \alpha B_{21}
+*              X_{21} A_{12} + X_{22} A_{22} = \alpha B_{22}
+*
+               ! Solve for X_{11}
+               call dtrsm_mod(side, uplo, transa, diag, k, k, alpha,
+     $            a, lda, b, ldb)
+               ! Update B_{12}
+               call dgemm('No transpose', 'No transpose', k, n-k, k,
+     $            neg_one, b, ldb, a(1,k+1), lda, alpha, b(1,k+1), ldb)
+               ! Solve for X_{12}
+               call dtrsm_mod(side, uplo, transa, diag, k, n-k,
+     $            alpha, a(k+1,k+1), lda, b(1,k+1), ldb)
+               ! Solve for X_{21}
+               call dtrsm_mod(side, uplo, transa, diag, m-k, k,
+     $            alpha, a, lda, b(k+1, 1), ldb)
+               ! Update B_{22}
+               call dgemm('No transpose', 'No transpose', m-k, n-k,
+     $            k, neg_one, b(k+1, 1), ldb, a(1,k+1), lda, alpha,
+     $            b(k+1, k+1), ldb)
+               ! Solve for X_{22}
+               call dtrsm_mod('Right', 'Upper', 'No Transpose', diag,
+     $            m-k, n-k, one, a(k+1,k+1), lda, b(k+1,k+1), ldb)
+            else ! A is transposed
+*
+*              Break A and B apart as
+*                    |-----------------|        |-----------------|
+*              A =   | A_{11} A_{12}   |  B =   | B_{11} B_{12}   |
+*                    | 0      A_{22}   |        | B_{21} B_{22}   |
+*                    |-----------------|        |-----------------|
+*
+*              Where
+*
+*              A_{11}\in\R^{k\times k} A_{12}\in\R^{  k\times n-k}
+*                                      A_{22}\in\R^{n-k\times n-k}
+*
+*              B_{11}\in\R^{  k\times k}  B_{12}\in\R^{  k\times n-k}
+*              B_{21}\in\R^{m-k\times k}  B_{22}\in\R^{m-k\times n-k}
+*
+*              We want to solve the system below replacing B with X
+*
+*              |---------------| |---------------------|          |---------------|
+*              | X_{11} X_{12} | | A_{11}**T 0         | = \alpha | B_{11} B_{12} |
+*              | X_{21} X_{22} | | A_{12}**T A_{22}**T |          | B_{21} B_{22} |
+*              |---------------| |---------------------|          |---------------|
+*
+*              Where X (and it's submatrix components) are the same shape as B
+*              and its respective submatrices
+*
+*              This gives us the following system (overwriting X onto B)
+*
+*              X_{11} A_{11}**T + X_{12} A_{12}**T = alpha B_{11}
+*                                 X_{12} A_{22}**T = alpha B_{12}
+*
+*              X_{21} A_{11}**T + X_{22} A_{12}**T = alpha B_{21}
+*                                 X_{22} A_{22}**T = alpha B_{22}
+*
+               ! Compute X_{12}
+               call DTRSM_MOD('Right', 'Upper', 'Transpose', diag,
+     $            k, n-k, alpha, a(k+1,k+1), lda, b(1, k+1), ldb)
+               ! Update B_{11}
+               call dgemm('No Transpose','Transpose', k, k, n-k,
+     $            neg_one, b(1,k+1), ldb, a(1,k+1), lda, alpha, b, ldb)
+               ! Solve for X_{11}
+               call DTRSM_MOD('Right', 'Upper', 'Transpose', diag,
+     $            k, k, one, a, lda, b, ldb)
+               ! Compute X_{22}
+               call dtrsm_mod('Right', 'Upper', 'Transpose', diag,
+     $            m-k, n-k, alpha, a(k+1,k+1), lda, b(k+1,k+1), ldb)
+               ! Update B_{21}
+               call dgemm('No Transpose', 'Transpose', m-k, k, k,
+     $            neg_one, b(k+1,k+1), ldb, a(1,k+1), lda, alpha,
+     $            b(k+1,1), ldb)
+               ! Solve for X_{21}
+               call dtrsm_mod('Right', 'Upper', 'Transpose', diag,
+     $            m-k, k, one, a, lda, b(k+1,1), ldb)
+            end if
+         else ! A is lower triangular
+            if( notrans ) then
+*
+*              Break A and B apart as
+*                    |-----------------|        |-----------------|
+*              A =   | A_{11} 0        |  B =   | B_{11} B_{12}   |
+*                    | A_{21} A_{22}   |        | B_{21} B_{22}   |
+*                    |-----------------|        |-----------------|
+*
+*              Where
+*
+*              A_{11}\in\R^{  k\times k} 0
+*              A_{21}\in\R^{n-k\times k} A_{22}\in\R^{n-k\times n-k}
+*
+*              B_{11}\in\R^{  k\times k}  B_{12}\in\R^{  k\times n-k}
+*              B_{21}\in\R^{m-k\times k}  B_{22}\in\R^{m-k\times n-k}
+*
+*              We want to solve the system below replacing B with X
+*
+*              |---------------| |-----------------|          |---------------|
+*              | X_{11} X_{12} | | A_{11} 0        | = \alpha | B_{11} B_{12} |
+*              | X_{21} X_{22} | | A_{21} A_{22}   |          | B_{21} B_{22} |
+*              |---------------| |-----------------|          |---------------|
+*
+*              Where X (and it's submatrix components) are the same shape as B
+*              and its respective submatrices
+*
+*              This gives us the following system (overwriting X onto B)
+*
+*              X_{11} A_{11} + X_{12} A_{21} = \alpha B_{11}
+*                              X_{12} A_{22} = \alpha B_{12}
+*
+*              X_{21} A_{11} + X_{22} A_{21} = \alpha B_{21}
+*                              X_{22} A_{22} = \alpha B_{22}
+*
+               ! Solve for X_{12}
+               call DTRSM_MOD('Right', 'Lower', 'No Transpose', DIAG,
+     $            k, n-k, alpha, a(k+1,k+1), lda, b(1,k+1), ldb)
+               ! Update B_{11}
+               call dgemm('No Transpose', 'No Transpose', k, k, n-k,
+     $            neg_one, B(1,k+1), ldb, A(k+1,1), lda, alpha, b, ldb)
+               ! Solve for X_{11}
+               call dtrsm_mod('Right', 'Lower', 'No Transpose', DIAG,
+     $            k, k, one, a, lda, b, ldb)
+               ! Solve for X_{22}
+               call dtrsm_mod('Right', 'Lower', 'No Transpose', DIAG,
+     $            m-k, n-k, alpha, a(k+1,k+1), lda, b(k+1,k+1), ldb)
+               ! Update B_{21}
+               call dgemm('No Transpose', 'Transpose', m-k, k, n-k,
+     $            neg_one, B(k+1,K+1), ldb, A(k+1,1), lda,
+     $            alpha, b(k+1,1), ldb)
+               ! Solve for X_{21}
+               call dtrsm_mod('Right', 'Lower', 'No Transpose', DIAG,
+     $            m-k, k, one, a, lda, b(k+1,1), ldb)
+            else  ! A is transposed
+*
+*              Break A and B apart as
+*                    |-----------------|        |-----------------|
+*              A =   | A_{11} 0        |  B =   | B_{11} B_{12}   |
+*                    | A_{21} A_{22}   |        | B_{21} B_{22}   |
+*                    |-----------------|        |-----------------|
+*
+*              Where
+*
+*              A_{11}\in\R^{  k\times k} 0
+*              A_{21}\in\R^{n-k\times k} A_{22}\in\R^{n-k\times n-k}
+*
+*              B_{11}\in\R^{  k\times k}  B_{12}\in\R^{  k\times n-k}
+*              B_{21}\in\R^{m-k\times k}  B_{22}\in\R^{m-k\times n-k}
+*
+*              We want to solve the system below replacing B with X
+*
+*              |---------------| |-----------------------|          |---------------|
+*              | X_{11} X_{12} | | A_{11}**T A_{21}**T   | = \alpha | B_{11} B_{12} |
+*              | X_{21} X_{22} | | 0         A_{22}**T   |          | B_{21} B_{22} |
+*              |---------------| |-----------------------|          |---------------|
+*
+*              Where X (and it's submatrix components) are the same shape as B
+*              and its respective submatrices
+*
+*              This gives us the following system (overwriting X onto B)
+*
+*              X_{11} A_{11}**T                    = \alpha B_{11}
+*              X_{11} A_{21}**T + X_{12} A_{22}**T = \alpha B_{12}
+*
+*              X_{21} A_{11}**T                    = \alpha B_{21}
+*              X_{21} A_{21}**T + X_{22} A_{22}**T = \alpha B_{22}
+*
+               ! Solve for X_{11}
+               call dtrsm_mod('Right', 'Lower', 'Transpose', DIAG,
+     $            k, k, alpha, a, lda, b, ldb)
+               ! Update B_{12}
+               call dgemm('No Transpose', 'Transpose', k, n-k, k,
+     $            neg_one, b, ldb, a(k+1,1), lda,
+     $            alpha, b(1,k+1), ldb)
+               ! Solve for X_{12}
+               call dtrsm_mod('Right', 'Lower', 'Transpose', DIAG,
+     $            k, n-k, one, a(k+1,k+1), lda, b(1,k+1), ldb)
+               ! Solve for X_{21}
+               call dtrsm_mod('Right', 'Lower', 'Transpose', DIAG,
+     $            m-k, k, alpha, a, lda, b(k+1,1), ldb)
+               ! Update B_{22}
+               call dgemm('No Transpose', 'Transpose', m-k, n-k, k,
+     $            neg_one, b(k+1,1), ldb, A(k+1,1), lda,
+     $            alpha, b(k+1,k+1), ldb)
+            end if
+         end if
       END IF
       RETURN
 *

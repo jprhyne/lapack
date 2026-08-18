@@ -209,7 +209,7 @@
 *     .. Local Scalars ..
       DOUBLE PRECISION TEMP
       INTEGER I,INFO,J,K,NROWA
-      LOGICAL LSIDE,NOUNIT,UPPER
+      LOGICAL LSIDE,NOUNIT,UPPER,NOTRAN
 *     ..
 *     .. Parameters ..
       DOUBLE PRECISION ONE,ZERO
@@ -267,24 +267,178 @@
 *
 *     Start the operations.
 *
-      IF( LSIDE ) THEN
-         IF( UPPER ) THEN
-            DO J = 1, N
-               DO I = M, 1, -1
-                  IF( A(I,I).NE.ZERO ) THEN
-                     TEMP = ALPHA*B(I,J)
-                     DO K = I+1, M
-                        TEMP = TEMP - A(I,K)*B(K,J)
-                     END DO
-                     B(I,J) = TEMP / A(I,I)
-                  ELSE
-                     B(I,J) = ZERO
-                  END IF
+      LSIDE = LSAME(SIDE,'L')
+      NOUNIT = LSAME(DIAG,'N')
+      UPPER = LSAME(UPLO,'U')
+      NOTRAN = LSAME(TRANSA,'N')
+      ! Pre-scale by alpha if necessary
+      IF (ALPHA.NE.ONE) THEN
+         DO J = 1,N
+            CALL DSCAL(M, ALPHA, B(1,J), 1)
+         END DO
+      END IF
+
+      IF (LSIDE) THEN
+         IF (NOTRAN) THEN
+            IF (UPPER) THEN
+               DO J = 1,N
+                  DO K = M,1,-1
+                     IF (NOUNIT) THEN
+                        IF (A(K,K) .EQ. 0.0D0) THEN
+                           B(K,J) = 0.0D0
+                        ELSE
+                           B(K,J) = B(K,J)/A(K,K)
+                           TEMP = B(K,J)
+                           DO I = 1,K-1
+                              B(I,J) = B(I,J)-TEMP*A(I,K)
+                           END DO
+                        END IF
+                     ELSE
+                        TEMP = B(K,J)
+                        DO I = 1,K-1
+                           B(I,J) = B(I,J)-TEMP*A(I,K)
+                        END DO
+                     END IF
+                  END DO
                END DO
-            END DO
+            ELSE
+               DO J = 1,N
+                  DO K = 1,M
+                     IF (NOUNIT) THEN
+                        IF (A(K,K) .EQ. 0.0D0) THEN
+                           B(K,J) = 0.0D0
+                        ELSE
+                           B(K,J) = B(K,J)/A(K,K)
+                           TEMP = B(K,J)
+
+                           DO I = K+1,M
+                              B(I,J) = B(I,J)-TEMP*A(I,K)
+                           END DO
+                        END IF
+                     ELSE
+                        TEMP = B(K,J)
+                        DO I = K+1,M
+                           B(I,J) = B(I,J)-TEMP*A(I,K)
+                        END DO
+                     END IF
+                  END DO
+               END DO
+            END IF
          ELSE
+            IF (UPPER) THEN
+               DO J = 1,N
+                  DO K = 1,M
+                     TEMP = B(K,J)
+                     DO I = K+1,M
+                        B(I,J) = B(I,J)-TEMP*A(K,I)
+                     END DO
+                     IF (NOUNIT) THEN
+                        IF (A(K,K) .EQ. 0.0D0) THEN
+                           B(K,J) = 0.0D0
+                        ELSE
+                           B(K,J) = B(K,J)/A(K,K)
+                        END IF
+                     END IF
+                  END DO
+               END DO
+            ELSE
+               DO J = 1,N
+                  DO K = M,1,-1
+                     TEMP = B(K,J)
+                     DO I = 1,K-1
+                        B(I,J) = B(I,J)-TEMP*A(K,I)
+                     END DO
+                     IF (NOUNIT) THEN
+                        IF (A(K,K) .EQ. 0.0D0) THEN
+                           B(K,J) = 0.0D0
+                        ELSE
+                           B(K,J) = B(K,J)/A(K,K)
+                        END IF
+                     END IF
+                  END DO
+               END DO
+            END IF
          END IF
       ELSE
+         IF (NOTRAN) THEN
+            IF (UPPER) THEN
+               DO I = 1,M
+                  DO K = N,1,-1
+                     IF (NOUNIT) THEN
+                        IF (A(K,K) .EQ. 0.0D0) THEN
+                           B(I,K) = 0.0D0
+                        ELSE
+                           B(I,K) = B(I,K)/A(K,K)
+                           TEMP = B(I,K)
+                           DO J = 1,K-1
+                              B(I,J) = B(I,J)-TEMP*A(J,K)
+                           END DO
+                        END IF
+                     ELSE
+                        TEMP = B(I,K)
+                        DO J = 1,K-1
+                           B(I,J) = B(I,J)-TEMP*A(J,K)
+                        END DO
+                     END IF
+                  END DO
+               END DO
+            ELSE
+               DO I = 1,M
+                  DO K = 1,N
+                     IF (NOUNIT) THEN
+                        IF (A(K,K) .EQ. 0.0D0) THEN
+                           B(I,K) = 0.0D0
+                        ELSE
+                           B(I,K) = B(I,K)/A(K,K)
+                           TEMP = B(I,K)
+                           DO J = K+1,N
+                              B(I,J) = B(I,J)-TEMP*A(J,K)
+                           END DO
+                        END IF
+                     ELSE
+                        TEMP = B(I,K)
+                        DO J = K+1,N
+                           B(I,J) = B(I,J)-TEMP*A(J,K)
+                        END DO
+                     END IF
+                  END DO
+               END DO
+            END IF
+         ELSE
+            IF (UPPER) THEN
+               DO I = 1,M
+                  DO K = 1,N
+                     TEMP = B(I,K)
+                     DO J = K+1,N
+                        B(I,J) = B(I,J)-TEMP*A(K,J)
+                     END DO
+                     IF (NOUNIT) THEN
+                        IF (A(K,K) .EQ. 0.0D0) THEN
+                           B(I,K) = 0.0D0
+                        ELSE
+                           B(I,K) = B(I,K)/A(K,K)
+                        END IF
+                     END IF
+                  END DO
+               END DO
+            ELSE
+               DO I = 1,M
+                  DO K = N,1,-1
+                     TEMP = B(I,K)
+                     DO J = 1,K-1
+                        B(I,J) = B(I,J)-TEMP*A(K,J)
+                     END DO
+                     IF (NOUNIT) THEN
+                        IF (A(K,K) .EQ. 0.0D0) THEN
+                           B(I,K) = 0.0D0
+                        ELSE
+                           B(I,K) = B(I,K)/A(K,K)
+                        END IF
+                     END IF
+                  END DO
+               END DO
+            END IF
+         END IF
       END IF
       RETURN
 *
