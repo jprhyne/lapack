@@ -1,4 +1,4 @@
-*> \brief \b DSTRK
+*> \brief \b SSYTRRK_LVL2
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -8,16 +8,16 @@
 *  Definition:
 *  ===========
 *
-*     SUBROUTINE DSTRK(UPLOA, UPLOC, TRANS, DIAG, K, ALPHA, A, LDA,
-*    $            BETA, C, LDC)
+*     SUBROUTINE SSYTRRK_LVL2(UPLOA, UPLOC, TRANS, DIAG, K,
+*    $            ALPHA, A, LDA, BETA, C, LDC)
 *
 *     .. Scalar Arguments ..
-*     DOUBLE PRECISION  ALPHA,BETA
+*     REAL  ALPHA,BETA
 *     INTEGER           K,LDA,LDC
 *     CHARACTER         UPLOA,UPLOC,TRANS,DIAG
 *     ..
 *     .. Array Arguments ..
-*     DOUBLE PRECISION  A(LDA,*),C(LDC,*)
+*     REAL  A(LDA,*),C(LDC,*)
 *
 *
 *> \par Purpose:
@@ -25,7 +25,7 @@
 *>
 *> \verbatim
 *>
-*> DSTRK  performs one of the symmetric rank k operations
+*> SSYTRRK_LVL2  performs one of the symmetric rank k operations
 *>
 *>    C := alpha*A*A**T + beta*C,
 *>
@@ -102,13 +102,13 @@
 *>
 *> \param[in] ALPHA
 *> \verbatim
-*>          ALPHA is DOUBLE PRECISION.
+*>          ALPHA is REAL.
 *>           On entry, ALPHA specifies the scalar alpha.
 *> \endverbatim
 *>
 *> \param[in] A
 *> \verbatim
-*>          A is DOUBLE PRECISION array, dimension ( LDA, k ).
+*>          A is REAL array, dimension ( LDA, k ).
 *>          If UPLOA = 'U' or 'u', then the leading k by k upper triangular
 *>          part of the array A must contain the upper triangular part of
 *>          the triangular matrix, and the strictly lower triangular part of A
@@ -128,13 +128,13 @@
 *>
 *> \param[in] BETA
 *> \verbatim
-*>          BETA is DOUBLE PRECISION.
+*>          BETA is REAL.
 *>           On entry, BETA specifies the scalar beta.
 *> \endverbatim
 *>
 *> \param[in,out] C
 *> \verbatim
-*>          C is DOUBLE PRECISION array, dimension ( LDC, N )
+*>          C is REAL array, dimension ( LDC, N )
 *>           Before entry  with  UPLOC = 'U' or 'u',  the leading  k by k
 *>           upper triangular part of the array C must contain the upper
 *>           triangular part  of the  symmetric matrix  and the strictly
@@ -177,32 +177,32 @@
 *> \endverbatim
 *>
 *  =====================================================================
-      SUBROUTINE DSTRK(UPLOA, UPLOC, TRANS, DIAG, K, ALPHA, A, LDA,
-     $            BETA, C, LDC)
+      SUBROUTINE SSYTRRK_LVL2(UPLOA, UPLOC, TRANS, DIAG, K,
+     $            ALPHA, A, LDA, BETA, C, LDC)
 *
 *     .. Scalar Arguments ..
-      DOUBLE PRECISION  ALPHA,BETA
+      REAL  ALPHA,BETA
       INTEGER           K,LDA,LDC
       CHARACTER         UPLOA,UPLOC,TRANS,DIAG
 *     ..
 *     .. Array Arguments ..
-      DOUBLE PRECISION  A(LDA,*),C(LDC,*)
+      REAL  A(LDA,*),C(LDC,*)
 *     ..
 *     .. Parameters ..
-      DOUBLE PRECISION  ZERO, ONE
-      PARAMETER(ZERO = 0.0D+0, ONE = 1.0D+0)
+      REAL  ZERO, ONE
+      PARAMETER(ZERO = 0.0E+0, ONE = 1.0E+0)
 *     ..
 *     .. Local Scalars ..
       INTEGER           I
       LOGICAL           UPPERA,UPPERC,TRANSL,UNITT
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          DTRMVOOP
+      EXTERNAL          STRMVOOP
 *     ..
 *     .. External Functions ..
       LOGICAL           LSAME
-      DOUBLE PRECISION  DDOT
-      EXTERNAL          LSAME,DDOT
+      REAL  SDOT
+      EXTERNAL          LSAME,SDOT
 *     ..
 *     .. Executable Statements ..
 *
@@ -234,25 +234,25 @@
                IF(UNITT) THEN
                   IF (BETA.EQ.ZERO) THEN
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, I-1,
+                        CALL STRMVOOP(UPLOA, 'Transpose', DIAG, I-1,
      $                        ALPHA, A, LDA, A(1,I), 1, BETA, C(1,I), 1)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(I-1, A(1,I), 1, A(1,I), 1) + ONE)
+     $                     (SDOT(I-1, A(1,I), 1, A(1,I), 1) + ONE)
                      END DO
                   ELSE
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, I-1,
+                        CALL STRMVOOP(UPLOA, 'Transpose', DIAG, I-1,
      $                        ALPHA, A, LDA, A(1,I), 1, BETA, C(1,I), 1)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(I-1, A(1,I), 1, A(1,I), 1) + ONE)
+     $                     (SDOT(I-1, A(1,I), 1, A(1,I), 1) + ONE)
      $                     + BETA*C(I,I)
                      END DO
                   END IF
                ELSE
                   DO I = 1, K
-                     CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, I,
+                     CALL STRMVOOP(UPLOA, 'Transpose', DIAG, I,
      $                     ALPHA, A, LDA, A(1,I), 1, BETA, C(1,I), 1)
                   END DO
                END IF
@@ -263,28 +263,28 @@
                IF(UNITT) THEN
                   IF (BETA.EQ.ZERO) THEN
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, K-I,
+                        CALL STRMVOOP(UPLOA, 'Transpose', DIAG, K-I,
      $                        ALPHA, A(I+1,I+1), LDA, A(I+1,I), 1, BETA,
      $                        C(I,I+1), LDC)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(K-I, A(I+1,I), 1, A(I+1,I), 1)
+     $                     (SDOT(K-I, A(I+1,I), 1, A(I+1,I), 1)
      $                     + ONE)
                      END DO
                   ELSE
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, K-I,
+                        CALL STRMVOOP(UPLOA, 'Transpose', DIAG, K-I,
      $                        ALPHA, A(I+1,I+1), LDA, A(I+1,I), 1, BETA,
      $                        C(I,I+1), LDC)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(K-I, A(I+1,I), 1, A(I+1,I), 1) +
+     $                     (SDOT(K-I, A(I+1,I), 1, A(I+1,I), 1) +
      $                     ONE) + BETA*C(I,I)
                      END DO
                   END IF
                ELSE
                   DO I = 1, K
-                     CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, K-I+1,
+                     CALL STRMVOOP(UPLOA, 'Transpose', DIAG, K-I+1,
      $                     ALPHA, A(I,I), LDA, A(I,I), 1, BETA,
      $                     C(I,I), LDC)
                   END DO
@@ -301,27 +301,27 @@
                IF(UNITT) THEN
                   IF (BETA.EQ.ZERO) THEN
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, I-1,
+                        CALL STRMVOOP(UPLOA, 'Transpose', DIAG, I-1,
      $                        ALPHA, A, LDA, A(1,I), 1, BETA,
      $                        C(I,1), LDC)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(I-1, A(1,I), 1, A(1,I), 1) + ONE)
+     $                     (SDOT(I-1, A(1,I), 1, A(1,I), 1) + ONE)
                      END DO
                   ELSE
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, I-1,
+                        CALL STRMVOOP(UPLOA, 'Transpose', DIAG, I-1,
      $                        ALPHA, A, LDA, A(1,I), 1, BETA,
      $                        C(I,1), LDC)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(I-1, A(1,I), 1, A(1,I), 1) + ONE)
+     $                     (SDOT(I-1, A(1,I), 1, A(1,I), 1) + ONE)
      $                     + BETA*C(I,I)
                      END DO
                   END IF
                ELSE
                   DO I = 1, K
-                     CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, I,
+                     CALL STRMVOOP(UPLOA, 'Transpose', DIAG, I,
      $                     ALPHA, A, LDA, A(1,I), 1, BETA, C(I,1), LDC)
                   END DO
                END IF
@@ -332,28 +332,28 @@
                IF(UNITT) THEN
                   IF (BETA.EQ.ZERO) THEN
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, K-I,
+                        CALL STRMVOOP(UPLOA, 'Transpose', DIAG, K-I,
      $                        ALPHA, A(I+1,I+1), LDA, A(I+1,I), 1, BETA,
      $                        C(I+1,I), 1)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(K-I, A(I+1,I), 1, A(I+1,I), 1)
+     $                     (SDOT(K-I, A(I+1,I), 1, A(I+1,I), 1)
      $                     + ONE)
                      END DO
                   ELSE
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, K-I,
+                        CALL STRMVOOP(UPLOA, 'Transpose', DIAG, K-I,
      $                        ALPHA, A(I+1,I+1), LDA, A(I+1,I), 1, BETA,
      $                        C(I+1,I), 1)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(K-I, A(I+1,I), 1, A(I+1,I), 1)
+     $                     (SDOT(K-I, A(I+1,I), 1, A(I+1,I), 1)
      $                     + ONE) + BETA*C(I,I)
                      END DO
                   END IF
                ELSE
                   DO I = 1, K
-                     CALL DTRMVOOP(UPLOA, 'Transpose', DIAG, K-I+1,
+                     CALL STRMVOOP(UPLOA, 'Transpose', DIAG, K-I+1,
      $                     ALPHA, A(I,I), LDA, A(I,I), 1, BETA,
      $                     C(I,I), 1)
                   END DO
@@ -375,28 +375,28 @@
                IF(UNITT) THEN
                   IF (BETA.EQ.ZERO) THEN
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+                        CALL STRMVOOP(UPLOA, 'No Transpose', DIAG,
      $                        K-I, ALPHA, A(I+1,I+1), LDA, A(I,I+1),
      $                        LDA, BETA, C(I,I+1), LDC)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(K-I, A(I,I+1), LDA, A(I,I+1), LDA)
+     $                     (SDOT(K-I, A(I,I+1), LDA, A(I,I+1), LDA)
      $                     + ONE)
                      END DO
                   ELSE
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+                        CALL STRMVOOP(UPLOA, 'No Transpose', DIAG,
      $                        K-I, ALPHA, A(I+1,I+1), LDA, A(I,I+1),
      $                        LDA, BETA, C(I,I+1), LDC)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(K-I, A(I,I+1), LDA, A(I,I+1), LDA)
+     $                     (SDOT(K-I, A(I,I+1), LDA, A(I,I+1), LDA)
      $                     + ONE) + BETA*C(I,I)
                      END DO
                   END IF
                ELSE
                   DO I = 1, K
-                     CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+                     CALL STRMVOOP(UPLOA, 'No Transpose', DIAG,
      $                     K-I+1, ALPHA, A(I,I), LDA, A(I,I), LDA,
      $                     BETA, C(I,I), LDC)
                   END DO
@@ -408,28 +408,28 @@
                IF(UNITT) THEN
                   IF (BETA.EQ.ZERO) THEN
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+                        CALL STRMVOOP(UPLOA, 'No Transpose', DIAG,
      $                        I-1, ALPHA, A, LDA, A(I,1), LDA, BETA,
      $                        C(1,I), 1)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(I-1, A(I,1), LDA, A(I,1), LDA)
+     $                     (SDOT(I-1, A(I,1), LDA, A(I,1), LDA)
      $                     + ONE)
                      END DO
                   ELSE
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+                        CALL STRMVOOP(UPLOA, 'No Transpose', DIAG,
      $                        I-1, ALPHA, A, LDA, A(I,1), LDA, BETA,
      $                        C(1,I), 1)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(I-1, A(I,1), LDA, A(I,1), LDA)
+     $                     (SDOT(I-1, A(I,1), LDA, A(I,1), LDA)
      $                     + ONE) + BETA*C(I,I)
                      END DO
                   END IF
                ELSE
                   DO I = 1, K
-                     CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG, I,
+                     CALL STRMVOOP(UPLOA, 'No Transpose', DIAG, I,
      $                     ALPHA, A, LDA, A(I,1), LDA, BETA, C(1,I), 1)
                   END DO
                END IF
@@ -445,28 +445,28 @@
                IF(UNITT) THEN
                   IF (BETA.EQ.ZERO) THEN
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+                        CALL STRMVOOP(UPLOA, 'No Transpose', DIAG,
      $                        K-I, ALPHA, A(I+1,I+1), LDA, A(I,I+1),
      $                        LDA, BETA, C(I+1,I), 1)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(K-I, A(I,I+1), LDA, A(I,I+1), LDA)
+     $                     (SDOT(K-I, A(I,I+1), LDA, A(I,I+1), LDA)
      $                     + ONE)
                      END DO
                   ELSE
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+                        CALL STRMVOOP(UPLOA, 'No Transpose', DIAG,
      $                        K-I, ALPHA, A(I+1,I+1), LDA, A(I,I+1),
      $                        LDA, BETA, C(I+1,I), 1)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(K-I, A(I,I+1), LDA, A(I,I+1), LDA)
+     $                     (SDOT(K-I, A(I,I+1), LDA, A(I,I+1), LDA)
      $                     + ONE) + BETA*C(I,I)
                      END DO
                   END IF
                ELSE
                   DO I = 1, K
-                     CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+                     CALL STRMVOOP(UPLOA, 'No Transpose', DIAG,
      $                     K-I+1, ALPHA, A(I,I), LDA, A(I,I), LDA,
      $                     BETA, C(I,I), 1)
                   END DO
@@ -478,28 +478,28 @@
                IF(UNITT) THEN
                   IF (BETA.EQ.ZERO) THEN
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+                        CALL STRMVOOP(UPLOA, 'No Transpose', DIAG,
      $                        I-1, ALPHA, A, LDA, A(I,1), LDA, BETA,
      $                        C(I,1), LDC)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(I-1, A(I,1), LDA, A(I,1), LDA)
+     $                     (SDOT(I-1, A(I,1), LDA, A(I,1), LDA)
      $                     + ONE)
                      END DO
                   ELSE
                      DO I = 1, K
-                        CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG,
+                        CALL STRMVOOP(UPLOA, 'No Transpose', DIAG,
      $                        I-1, ALPHA, A, LDA, A(I,1), LDA, BETA,
      $                        C(I,1), LDC)
 *
                         C(I,I) = ALPHA *
-     $                     (DDOT(I-1, A(I,1), LDA, A(I,1), LDA)
+     $                     (SDOT(I-1, A(I,1), LDA, A(I,1), LDA)
      $                     + ONE) + BETA*C(I,I)
                      END DO
                   END IF
                ELSE
                   DO I = 1, K
-                     CALL DTRMVOOP(UPLOA, 'No Transpose', DIAG, I,
+                     CALL STRMVOOP(UPLOA, 'No Transpose', DIAG, I,
      $                     ALPHA, A, LDA, A(I,1), LDA, BETA, C(I,1),
      $                     LDC)
                   END DO

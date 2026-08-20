@@ -190,7 +190,9 @@
 *     .. Parameters ..
 *
       DOUBLE PRECISION  ZERO, ONE
-      PARAMETER(ZERO = 0.0D+0, ONE = 1.0D+0)
+      COMPLEX*16        ZZERO
+      PARAMETER(ZERO = 0.0D+0, ONE = 1.0D+0,
+     $      ZZERO = (0.0D+0,0.0D+0))
 *
 *     .. Local Scalars ..
 *
@@ -199,7 +201,7 @@
 *
 *     .. External Subroutines ..
 *
-      EXTERNAL          ZHT3RK, ZHERK, ZTRTRI
+      EXTERNAL          ZHETRRK, ZHERK, ZTRTRI_MOD
 *
 *     .. External Functions..
 *
@@ -208,31 +210,9 @@
 *
 *     .. Intrinsic Functions..
 *
-      INTRINSIC         DCMPLX,DCONJG
+      INTRINSIC         DCONJG
 *
 *     Beginning of executable statements
-*
-*     This method is only viable for non-singular V matrices with
-*     non-zero associated tau values. We know for a fact that V is 
-*     always non-singular as V is unit triangular, however tau can
-*     be 0. Thus, if we detect this case, we bail to the level-2 BLAS
-*     implementation, which is known to work in these instances, which
-*     will never bail back to this implementation.
-*
-*     Note: We are not bailing to the standard larft as that subroutine
-*     may call this subroutine as a terminating case.
-*     We could also just error out by calling XERBLA if this is desired
-*
-      DO I = 1, K
-         IF( TAU(I).EQ.DCMPLX(ZERO) ) THEN
-*           TODO: error here if jobt == 2
-            CALL ZLARFT_LVL2(DIRECT, STOREV, N, K, V, LDV, TAU,
-     $            T, LDT)
-            RETURN
-         END IF
-      END DO
-*
-*     If we reach here, then we guarantee the calls to dtrtri will not fail
 *
 *     Determine what kind of Q we need to compute
 *     We assume that if the user doesn't provide 'F' for DIRECT,
@@ -268,7 +248,7 @@
 *
       RQT = TDIRF.AND.(.NOT.COLV)
 *
-*     RQ happens when we have backward direction in row storage and want to 
+*     RQ happens when we have backward direction in row storage and want to
 *     compute the T that we would normally compute
 *
       RQ = (.NOT.RQT).AND.(.NOT.COLV)
@@ -281,8 +261,8 @@
 *        Break V apart into 2 components
 *
 *        V = |-----|
-*            | V_1 | k   
-*            | V_2 | n-k 
+*            | V_1 | k
+*            | V_2 | n-k
 *            |-----|
 *              k
 *
@@ -297,7 +277,7 @@
 *
 *        Compute T = ut(V_1**H * V_1)
 *
-         CALL ZHT3RK('Lower', 'Upper', 'Conjugate', 'Unit', K, ONE,
+         CALL ZHETRRK('Lower', 'Upper', 'Conjugate', 'Unit', K, ONE,
      $         V, LDV, ZERO, T, LDT)
 *
 *        Compute T = ut(V_2**H * V_2 + T)
@@ -309,7 +289,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZZERO ) THEN
+               T(I,I) = ZZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -317,7 +301,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL ZTRTRI('Upper', 'Non-Unit', K, T, LDT, INFO)
+            CALL ZTRTRI_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(LQ) THEN
 *
@@ -339,7 +323,7 @@
 *
 *        Compute T = ut(V_1 * V_1**H)
 *
-         CALL ZHT3RK('Upper', 'Upper', 'No Transpose', 'Unit', K,
+         CALL ZHETRRK('Upper', 'Upper', 'No Transpose', 'Unit', K,
      $         ONE, V, LDV, ZERO, T, LDT)
 *
 *        Compute T = ut(V_2 * V_2**H + T)
@@ -351,7 +335,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZZERO ) THEN
+               T(I,I) = ZZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -359,7 +347,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL ZTRTRI('Upper', 'Non-Unit', K, T, LDT, INFO)
+            CALL ZTRTRI_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(LQT) THEN
 *
@@ -381,7 +369,7 @@
 *
 *        Compute T = lt(V_1 * V_1**H)
 *
-         CALL ZHT3RK('Upper', 'Lower', 'No Transpose', 'Unit', K,
+         CALL ZHETRRK('Upper', 'Lower', 'No Transpose', 'Unit', K,
      $         ONE, V, LDV, ZERO, T, LDT)
 *
 *        Compute T = lt(V_2 * V_2**H + T)
@@ -393,7 +381,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/DCONJG(TAU(I))
+            IF( TAU(I).EQ.ZZERO ) THEN
+               T(I,I) = ZZERO
+            ELSE
+               T(I,I) = 1/DCONJG(TAU(I))
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -401,15 +393,15 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL ZTRTRI('Lower', 'Non-Unit', K, T, LDT, INFO)
+            CALL ZTRTRI_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(QL) THEN
 *
 *        Break V apart into 2 components
 *
 *        V = |-----|
-*            | V_2 | n-k   
-*            | V_1 | k 
+*            | V_2 | n-k
+*            | V_1 | k
 *            |-----|
 *              k
 *
@@ -424,7 +416,7 @@
 *
 *        Compute T = lt(V_1**H * V_1)
 *
-         CALL ZHT3RK('Upper', 'Lower', 'Conjugate', 'Unit', K, ONE,
+         CALL ZHETRRK('Upper', 'Lower', 'Conjugate', 'Unit', K, ONE,
      $         V(N-K+1,1), LDV, ZERO, T, LDT)
 *
 *        Compute T = lt(V_2**H * V_2 + T)
@@ -436,7 +428,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZZERO ) THEN
+               T(I,I) = ZZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -444,7 +440,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL ZTRTRI('Lower', 'Non-Unit', K, T, LDT, INFO)
+            CALL ZTRTRI_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(RQ) THEN
 *
@@ -466,7 +462,7 @@
 *
 *        Compute T = lt(V_1 * V_1**H)
 *
-         CALL ZHT3RK('Lower', 'Lower', 'No Transpose', 'Unit', K,
+         CALL ZHETRRK('Lower', 'Lower', 'No Transpose', 'Unit', K,
      $         ONE, V(1,N-K+1), LDV, ZERO, T, LDT)
 *
 *        Compute T = lt(V_2 * V_2**H + T)
@@ -478,7 +474,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZZERO ) THEN
+               T(I,I) = ZZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -486,7 +486,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL ZTRTRI('Lower', 'Non-Unit', K, T, LDT, INFO)
+            CALL ZTRTRI_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(RQT) THEN
 *
@@ -508,7 +508,7 @@
 *
 *        Compute T = ut(V_1 * V_1**H)
 *
-         CALL ZHT3RK('Lower', 'Upper', 'No Transpose', 'Unit', K,
+         CALL ZHETRRK('Lower', 'Upper', 'No Transpose', 'Unit', K,
      $         ONE, V(1,N-K+1), LDV, ZERO, T, LDT)
 *
 *        Compute T = ut(V_2 * V_2**H + T)
@@ -520,7 +520,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/DCONJG(TAU(I))
+            IF( TAU(I).EQ.ZZERO ) THEN
+               T(I,I) = ZZERO
+            ELSE
+               T(I,I) = 1/DCONJG(TAU(I))
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -528,7 +532,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL ZTRTRI('Upper', 'Non-Unit', K, T, LDT, INFO)
+            CALL ZTRTRI_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
          END IF
       END IF
       END SUBROUTINE

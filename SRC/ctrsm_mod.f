@@ -1,4 +1,4 @@
-*> \brief \b DTRSM_MOD
+*> \brief \b CTRSM_MOD
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -8,16 +8,16 @@
 *  Definition:
 *  ===========
 *
-*     RECURSIVE SUBROUTINE DTRSM_MOD(SIDE, UPLO, TRANSA, DIAG, M, N,
+*     RECURSIVE SUBROUTINE CTRSM_MOD(SIDE, UPLO, TRANSA, DIAG, M, N,
 *    $      ALPHA, A, LDA, B, LDB)
 *
 *       .. Scalar Arguments ..
-*       DOUBLE PRECISION ALPHA
+*       COMPLEX ALPHA
 *       INTEGER LDA,LDB,M,N
 *       CHARACTER DIAG,SIDE,TRANSA,UPLO
 *       ..
 *       .. Array Arguments ..
-*       DOUBLE PRECISION A(LDA,*),B(LDB,*)
+*       COMPLEX A(LDA,*),B(LDB,*)
 *       ..
 *
 *
@@ -26,7 +26,7 @@
 *>
 *> \verbatim
 *>
-*> DTRSM_MOD solves one of the matrix equations
+*> CTRSM_MOD solves one of the matrix equations
 *>
 *>    op( A )*X = alpha*B,   or   X*op( A ) = alpha*B,
 *>
@@ -104,7 +104,7 @@
 *>
 *> \param[in] ALPHA
 *> \verbatim
-*>          ALPHA is DOUBLE PRECISION.
+*>          ALPHA is COMPLEX.
 *>           On entry,  ALPHA specifies the scalar  alpha. When  alpha is
 *>           zero then  A is not referenced and  B need not be set before
 *>           entry.
@@ -112,7 +112,7 @@
 *>
 *> \param[in] A
 *> \verbatim
-*>          A is DOUBLE PRECISION array, dimension ( LDA, k ),
+*>          A is COMPLEX array, dimension ( LDA, k ),
 *>           where k is m when SIDE = 'L' or 'l'
 *>             and k is n when SIDE = 'R' or 'r'.
 *>           Before entry  with  UPLO = 'U' or 'u',  the  leading  k by k
@@ -138,7 +138,7 @@
 *>
 *> \param[in,out] B
 *> \verbatim
-*>          B is DOUBLE PRECISION array, dimension ( LDB, N )
+*>          B is COMPLEX array, dimension ( LDB, N )
 *>           Before entry,  the leading  m by n part of the array  B must
 *>           contain  the  right-hand  side  matrix  B,  and  on exit  is
 *>           overwritten by the solution matrix  X.
@@ -162,17 +162,17 @@
 *
 *> \ingroup trsm
 *  =====================================================================
-      RECURSIVE SUBROUTINE DTRSM_MOD(SIDE, UPLO, TRANSA, DIAG, M, N,
+      RECURSIVE SUBROUTINE CTRSM_MOD(SIDE, UPLO, TRANSA, DIAG, M, N,
      $      ALPHA, A, LDA, B, LDB)
       IMPLICIT NONE
 *
 *     .. Scalar Arguments ..
-      DOUBLE PRECISION ALPHA
+      COMPLEX ALPHA
       INTEGER LDA,LDB,M,N
       CHARACTER DIAG,SIDE,TRANSA,UPLO
 *     ..
 *     .. Array Arguments ..
-      DOUBLE PRECISION A(LDA,*),B(LDB,*)
+      COMPLEX A(LDA,*),B(LDB,*)
 *     ..
 *
 *  =====================================================================
@@ -188,13 +188,13 @@
       INTRINSIC MAX
 *     ..
 *     .. Local Scalars ..
-      DOUBLE PRECISION TEMP
+      COMPLEX TEMP
       INTEGER I,INFO,J,K,NROWA,NX
       LOGICAL LSIDE,NOUNIT,UPPER,NOTRANS
 *     ..
 *     .. Parameters ..
-      DOUBLE PRECISION ONE,ZERO,NEG_ONE
-      PARAMETER (ONE=1.0D+0,ZERO=0.0D+0,NEG_ONE=-1.0D+0)
+      COMPLEX ONE,ZERO,NEG_ONE
+      PARAMETER (ONE=1.0E+0,ZERO=0.0E+0,NEG_ONE=-1.0E+0)
 *     ..
 *
 *     Test the input parameters.
@@ -243,7 +243,7 @@
 *
       IF (ALPHA.EQ.ZERO) THEN
 
-         CALL DLASET('All', M, N, ZERO, ZERO, B, LDB)
+         CALL CLASET('All', M, N, ZERO, ZERO, B, LDB)
          RETURN
       END IF
       ! Check if we are performing the base case or not
@@ -251,7 +251,7 @@
 !    $   N, -1, -1, -1 )
       NX = 1 ! Add something else here later
       IF( MIN(M,N).LE.NX ) THEN
-         CALL DTRSM_LVL2_MOD(SIDE, UPLO, TRANSA, DIAG, M, N,
+         CALL CTRSM_LVL2_MOD(SIDE, UPLO, TRANSA, DIAG, M, N,
      $      ALPHA, A, LDA, B, LDB)
          RETURN
       END IF
@@ -308,25 +308,25 @@
 *              solve A_{11}*X_{12} = B_{12}            (This routine)
 *
                ! Compute X_{21} overwriting B_{21}
-               CALL DTRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
+               CALL CTRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
      $         M-K, K, ALPHA, A(K+1,K+1), LDA, B(K+1,1), LDB)
 
                ! Update B_{11} with X_{21}
-               CALL DGEMM('N', 'N', K, K, M-K, NEG_ONE,
+               CALL CGEMM('N', 'N', K, K, M-K, NEG_ONE,
      $         A(1,K+1), LDA, B(K+1,1), LDB, ALPHA, B, LDB)
                ! Compute X_{11} storing it in B_{11}
-               CALL DTRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
+               CALL CTRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
      $         K, K, ONE, A, LDA, B, LDB)
 
                ! Compute X_{22} overwriting B_{22}
-               CALL DTRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
+               CALL CTRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
      $         M-K, N-K, ALPHA, A(K+1,K+1), LDA, B(K+1,K+1), LDB)
 
                ! Update B_{12} with X_{22}
-               CALL DGEMM('N', 'N', K, N-K, M-K, NEG_ONE,
+               CALL CGEMM('N', 'N', K, N-K, M-K, NEG_ONE,
      $         A(1,K+1), LDA, B(K+1,K+1), LDB, ALPHA, B(1,K+1), LDB)
                !Compute X_{12} storing it in B_{12}
-               CALL DTRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
+               CALL CTRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
      $         K, N-K, ONE, A, LDA, B(1,K+1), LDB)
             ELSE ! A is transposed
 *
@@ -375,25 +375,25 @@
 *
 
                ! Compute X_{11}
-               CALL DTRSM_MOD('left', 'upper', 'transpose', DIAG,
+               CALL CTRSM_MOD('left', 'upper', 'transpose', DIAG,
      $            K, K, ALPHA, A, LDA, B, LDB )
                ! Update B_{21}
-               CALL DGEMM( 'transpose', 'no transpose', M-K, K, K,
+               CALL CGEMM( 'transpose', 'no transpose', M-K, K, K,
      $            NEG_ONE, A(1,K+1), LDA, B, LDB, ALPHA, B(K+1,1), LDB)
                ! Solve for X_{21}
-               CALL DTRSM_MOD( 'left', 'upper', 'transpose', DIAG,
+               CALL CTRSM_MOD( 'left', 'upper', 'transpose', DIAG,
      $            M-K, K, ONE, A(K+1,K+1), LDA, B(K+1,1), LDB )
 
                ! Compute X_{12}
-               CALL DTRSM_MOD( 'left', 'upper', 'transpose', DIAG,
+               CALL CTRSM_MOD( 'left', 'upper', 'transpose', DIAG,
      $            K, N-K, ALPHA, A, LDA, B(1,K+1), LDB )
 
                !Update B_{22}
-               CALL DGEMM( 'transpose', 'no transpose', M-K, N-K, K,
+               CALL CGEMM( 'transpose', 'no transpose', M-K, N-K, K,
      $            NEG_ONE, A(1,K+1), LDA, B(1,K+1), LDB, ALPHA,
      $            B(K+1,K+1), LDB )
                ! Solve for B_{22}
-               CALL DTRSM_MOD( 'left', 'upper', 'transpose', DIAG,
+               CALL CTRSM_MOD( 'left', 'upper', 'transpose', DIAG,
      $            M-K, N-K, ONE, A(K+1,K+1), LDA, B(K+1,K+1), LDB )
             END IF
          ELSE ! A is lower triangular
@@ -444,26 +444,26 @@
 *              Overwrite B_{22} with solution to A_{22} X = B_{22}
 *
                ! Compute X_{11}
-               CALL DTRSM_MOD('left', 'lower', 'no transpose', DIAG,
+               CALL CTRSM_MOD('left', 'lower', 'no transpose', DIAG,
      $            K, K, ALPHA, A, LDA, B, LDB)
 
                ! Update B_{21}
-               CALL DGEMM('no transpose', 'no transpose', M-K, K, K,
+               CALL CGEMM('no transpose', 'no transpose', M-K, K, K,
      $            NEG_ONE, A(K+1,1), LDA, B, LDB, ALPHA, B(K+1,1), LDB)
                ! Solve for X_{21}
-               CALL DTRSM_MOD('left', 'lower', 'no transpose',
+               CALL CTRSM_MOD('left', 'lower', 'no transpose',
      $            DIAG, M-K, K, ONE, A(K+1,K+1), LDA, B(K+1,1), LDB)
 
                ! Compute X_{12}
-               CALL DTRSM_MOD('left', 'lower', 'no transpose', DIAG,
+               CALL CTRSM_MOD('left', 'lower', 'no transpose', DIAG,
      $            K, N-K, ALPHA, A, LDA, B(1,K+1), LDB )
 
                ! Update B_{22}
-               CALL DGEMM('no transpose', 'no transpose', M-K, N-K,
+               CALL CGEMM('no transpose', 'no transpose', M-K, N-K,
      $            K, NEG_ONE, A(K+1,1), LDA, B(1,K+1), LDB, ALPHA,
      $            B(K+1,K+1), LDB)
                ! Solve for X_{22}
-               CALL DTRSM_MOD('left', 'lower', 'no transpose', DIAG,
+               CALL CTRSM_MOD('left', 'lower', 'no transpose', DIAG,
      $            M-K, N-K, ONE, A(K+1,K+1), LDA, B(K+1,K+1), LDB)
             ELSE ! A is transposed
 *
@@ -500,29 +500,29 @@
 *                                   A_{22}^\top*X_{22} = \alpha B_{22}
 *
                ! Compute X_{21}
-               CALL DTRSM_MOD('left', 'lower', 'transpose', DIAG,
+               CALL CTRSM_MOD('left', 'lower', 'transpose', DIAG,
      $            M-K, K, ALPHA, A(K+1,K+1), LDA, B(K+1,1), LDB)
 
                ! Update B_{11}
-               CALL DGEMM('transpose', 'no transpose', K, K, M-K,
+               CALL CGEMM('transpose', 'no transpose', K, K, M-K,
      $            NEG_ONE, A(K+1,1), LDA, B(K+1,1), LDB, ALPHA,
      $            B, LDB)
 
                ! solve for X_{11}
-               CALL DTRSM_MOD('left', 'lower', 'transpose', DIAG,
+               CALL CTRSM_MOD('left', 'lower', 'transpose', DIAG,
      $            K, K, ONE, A, LDA, B, LDB)
 
                ! Solve for X_{22}
-               CALL DTRSM_MOD('left', 'lower', 'transpose', DIAG,
+               CALL CTRSM_MOD('left', 'lower', 'transpose', DIAG,
      $            M-K, N-K, ALPHA, A(K+1,K+1), LDA, B(K+1,K+1), LDB)
 
                ! Update B_{12}
-               CALL DGEMM('transpose', 'no transpose', K, N-K, M-K,
+               CALL CGEMM('transpose', 'no transpose', K, N-K, M-K,
      $            NEG_ONE, A(K+1, 1), LDA, B(K+1,K+1), LDB, ALPHA,
      $            B(1,K+1), LDB)
 
                ! Solve for X_{12}
-               CALL DTRSM_MOD('left', 'lower', 'transpose', DIAG,
+               CALL CTRSM_MOD('left', 'lower', 'transpose', DIAG,
      $            K, N-K, ONE, A, LDA, B(1,K+1), LDB)
             END IF
          END IF
@@ -563,23 +563,23 @@
 *              X_{21} A_{12} + X_{22} A_{22} = \alpha B_{22}
 *
                ! Solve for X_{11}
-               CALL DTRSM_MOD(SIDE, UPLO, TRANSA, DIAG, K, K, ALPHA,
+               CALL CTRSM_MOD(SIDE, UPLO, TRANSA, DIAG, K, K, ALPHA,
      $            A, LDA, B, LDB)
                ! Update B_{12}
-               CALL DGEMM('No transpose', 'No transpose', K, N-K, K,
+               CALL CGEMM('No transpose', 'No transpose', K, N-K, K,
      $            NEG_ONE, B, LDB, A(1,K+1), LDA, ALPHA, B(1,K+1), LDB)
                ! Solve for X_{12}
-               CALL DTRSM_MOD(SIDE, UPLO, TRANSA, DIAG, K, N-K,
+               CALL CTRSM_MOD(SIDE, UPLO, TRANSA, DIAG, K, N-K,
      $            ALPHA, A(K+1,K+1), LDA, B(1,K+1), LDB)
                ! Solve for X_{21}
-               CALL DTRSM_MOD(SIDE, UPLO, TRANSA, DIAG, M-K, K,
+               CALL CTRSM_MOD(SIDE, UPLO, TRANSA, DIAG, M-K, K,
      $            ALPHA, A, LDA, B(K+1, 1), LDB)
                ! Update B_{22}
-               CALL DGEMM('No transpose', 'No transpose', M-K, N-K,
+               CALL CGEMM('No transpose', 'No transpose', M-K, N-K,
      $            K, NEG_ONE, B(K+1, 1), LDB, A(1,K+1), LDA, ALPHA,
      $            B(K+1, K+1), LDB)
                ! Solve for X_{22}
-               CALL DTRSM_MOD('Right', 'Upper', 'No Transpose', DIAG,
+               CALL CTRSM_MOD('Right', 'Upper', 'No Transpose', DIAG,
      $            M-K, N-K, ONE, A(K+1,K+1), LDA, B(K+1,K+1), LDB)
             ELSE ! A is transposed
 *
@@ -616,23 +616,23 @@
 *                                 X_{22} A_{22}**T = alpha B_{22}
 *
                ! Compute X_{12}
-               CALL DTRSM_MOD('Right', 'Upper', 'Transpose', DIAG,
+               CALL CTRSM_MOD('Right', 'Upper', 'Transpose', DIAG,
      $            K, N-K, ALPHA, A(K+1,K+1), LDA, B(1, K+1), LDB)
                ! Update B_{11}
-               CALL DGEMM('No Transpose','Transpose', K, K, N-K,
+               CALL CGEMM('No Transpose','Transpose', K, K, N-K,
      $            NEG_ONE, B(1,K+1), LDB, A(1,K+1), LDA, ALPHA, B, LDB)
                ! Solve for X_{11}
-               CALL DTRSM_MOD('Right', 'Upper', 'Transpose', DIAG,
+               CALL CTRSM_MOD('Right', 'Upper', 'Transpose', DIAG,
      $            K, K, ONE, A, LDA, B, LDB)
                ! Compute X_{22}
-               CALL DTRSM_MOD('Right', 'Upper', 'Transpose', DIAG,
+               CALL CTRSM_MOD('Right', 'Upper', 'Transpose', DIAG,
      $            M-K, N-K, ALPHA, A(K+1,K+1), LDA, B(K+1,K+1), LDB)
                ! Update B_{21}
-               CALL DGEMM('No Transpose', 'Transpose', M-K, K, K,
+               CALL CGEMM('No Transpose', 'Transpose', M-K, K, K,
      $            NEG_ONE, B(K+1,K+1), LDB, A(1,K+1), LDA, ALPHA,
      $            B(K+1,1), LDB)
                ! Solve for X_{21}
-               CALL DTRSM_MOD('Right', 'Upper', 'Transpose', DIAG,
+               CALL CTRSM_MOD('Right', 'Upper', 'Transpose', DIAG,
      $            M-K, K, ONE, A, LDA, B(K+1,1), LDB)
             END IF
          ELSE ! A is lower triangular
@@ -671,23 +671,23 @@
 *                              X_{22} A_{22} = \alpha B_{22}
 *
                ! Solve for X_{12}
-               CALL DTRSM_MOD('Right', 'Lower', 'No Transpose', DIAG,
+               CALL CTRSM_MOD('Right', 'Lower', 'No Transpose', DIAG,
      $            K, N-K, ALPHA, A(K+1,K+1), LDA, B(1,K+1), LDB)
                ! Update B_{11}
-               CALL DGEMM('No Transpose', 'No Transpose', K, K, N-K,
+               CALL CGEMM('No Transpose', 'No Transpose', K, K, N-K,
      $            NEG_ONE, B(1,K+1), LDB, A(K+1,1), LDA, ALPHA, B, LDB)
                ! Solve for X_{11}
-               CALL DTRSM_MOD('Right', 'Lower', 'No Transpose', DIAG,
+               CALL CTRSM_MOD('Right', 'Lower', 'No Transpose', DIAG,
      $            K, K, ONE, A, LDA, B, LDB)
                ! Solve for X_{22}
-               CALL DTRSM_MOD('Right', 'Lower', 'No Transpose', DIAG,
+               CALL CTRSM_MOD('Right', 'Lower', 'No Transpose', DIAG,
      $            M-K, N-K, ALPHA, A(K+1,K+1), LDA, B(K+1,K+1), LDB)
                ! Update B_{21}
-               CALL DGEMM('No Transpose', 'Transpose', M-K, K, N-K,
+               CALL CGEMM('No Transpose', 'Transpose', M-K, K, N-K,
      $            NEG_ONE, B(K+1,K+1), LDB, A(K+1,1), LDA,
      $            ALPHA, B(K+1,1), LDB)
                ! Solve for X_{21}
-               CALL DTRSM_MOD('Right', 'Lower', 'No Transpose', DIAG,
+               CALL CTRSM_MOD('Right', 'Lower', 'No Transpose', DIAG,
      $            M-K, K, ONE, A, LDA, B(K+1,1), LDB)
             ELSE  ! A is transposed
 *
@@ -724,20 +724,20 @@
 *              X_{21} A_{21}**T + X_{22} A_{22}**T = \alpha B_{22}
 *
                ! Solve for X_{11}
-               CALL DTRSM_MOD('Right', 'Lower', 'Transpose', DIAG,
+               CALL CTRSM_MOD('Right', 'Lower', 'Transpose', DIAG,
      $            K, K, ALPHA, A, LDA, B, LDB)
                ! Update B_{12}
-               CALL DGEMM('No Transpose', 'Transpose', K, N-K, K,
+               CALL CGEMM('No Transpose', 'Transpose', K, N-K, K,
      $            NEG_ONE, B, LDB, A(K+1,1), LDA,
      $            ALPHA, B(1,K+1), LDB)
                ! Solve for X_{12}
-               CALL DTRSM_MOD('Right', 'Lower', 'Transpose', DIAG,
+               CALL CTRSM_MOD('Right', 'Lower', 'Transpose', DIAG,
      $            K, N-K, ONE, A(K+1,K+1), LDA, B(1,K+1), LDB)
                ! Solve for X_{21}
-               CALL DTRSM_MOD('Right', 'Lower', 'Transpose', DIAG,
+               CALL CTRSM_MOD('Right', 'Lower', 'Transpose', DIAG,
      $            M-K, K, ALPHA, A, LDA, B(K+1,1), LDB)
                ! Update B_{22}
-               CALL DGEMM('No Transpose', 'Transpose', M-K, N-K, K,
+               CALL CGEMM('No Transpose', 'Transpose', M-K, N-K, K,
      $            NEG_ONE, B(K+1,1), LDB, A(K+1,1), LDA,
      $            ALPHA, B(K+1,K+1), LDB)
             END IF
@@ -745,6 +745,6 @@
       END IF
       RETURN
 *
-*     End of DTRSM_MOD
+*     End of CTRSM_MOD
 *
       END

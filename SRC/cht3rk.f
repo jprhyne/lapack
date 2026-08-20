@@ -1,4 +1,4 @@
-*> \brief \b CHT3RK
+*> \brief \b CHETRRK
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -8,7 +8,7 @@
 *  Definition:
 *  ===========
 *
-*     RECURSIVE SUBROUTINE CHT3RK(UPLOA, UPLOC, TRANS, DIAG, K,
+*     RECURSIVE SUBROUTINE CHETRRK(UPLOA, UPLOC, TRANS, DIAG, K,
 *    $            ALPHA, A, LDA,BETA, C, LDC)
 *
 *     .. Scalar Arguments ..
@@ -25,7 +25,7 @@
 *>
 *> \verbatim
 *>
-*> CHT3RK  performs one of the hermitian rank k operations
+*> CHETRRK  performs one of the hermitian rank k operations
 *>
 *>    C := alpha*A*A**H + beta*C,
 *>
@@ -34,7 +34,7 @@
 *>    C := alpha*A**H*A + beta*C,
 *>
 *> where  alpha and beta  are real scalars, C is a  k by k  hermitian matrix
-*> and  A  is an  k by k  either upper or or lower triangular matrix 
+*> and  A  is an  k by k  either upper or or lower triangular matrix
 *> \endverbatim
 *
 *  Arguments:
@@ -175,7 +175,7 @@
 *> \endverbatim
 *>
 *  =====================================================================
-      RECURSIVE SUBROUTINE CHT3RK(UPLOT, UPLOC, TRANS, DIAG, K,
+      RECURSIVE SUBROUTINE CHETRRK(UPLOT, UPLOC, TRANS, DIAG, K,
      $            ALPHA, T, LDT, BETA, C, LDC)
 *
 *     .. Scalar Arguments ..
@@ -215,7 +215,7 @@
 *
 *     Determine the crossover point into the unblocked variant
 *
-      NX = ILAENV(3, 'CHT3RK', UPLOT // UPLOC // TRANS // DIAG,
+      NX = ILAENV(3, 'CHETRRK', UPLOT // UPLOC // TRANS // DIAG,
      $      K, -1, -1, -1)
 *
       IF(K.LT.NX) THEN
@@ -285,7 +285,7 @@
 *           C_{2,1} = \alpha*T_{1,2}**H*T_{1,1} + \beta C_{2,1}
 *           C_{2,2} = \alpha*T_{1,2}**H*T_{1,2} + \alpha*T_{2,2}**H*T_{2,2} + \beta C_{2,2}
 *
-*           Thus, we compute the following 
+*           Thus, we compute the following
 *
 *           C_{1,1} = \alpha*T_{1,1}**H*T_{1,1} + \beta C_{1,1} (This routine)
 *           C_{2,2} = \alpha*T_{2,2}**H*T_{2,2} + \beta C_{2,2} (This routine)
@@ -293,13 +293,13 @@
 *
 *           Compute C_{1,1} = \alpha*T_{1,1}**H*T_{1,1} + \beta C_{1,1}
 *
-            CALL CHT3RK(UPLOT, UPLOC, TRANS, DIAG, L, ALPHA,
+            CALL CHETRRK(UPLOT, UPLOC, TRANS, DIAG, L, ALPHA,
      $            T, LDT, BETA, C, LDC)
 *
 *           Compute C_{2,2}
 *           C_{2,2} = \alpha*T_{2,2}**H*T_{2,2} + \beta C_{2,2}
 *
-            CALL CHT3RK(UPLOT, UPLOC, TRANS, DIAG, K-L, ALPHA,
+            CALL CHETRRK(UPLOT, UPLOC, TRANS, DIAG, K-L, ALPHA,
      $            T(L+1,L+1), LDT, BETA, C(L+1,L+1), LDC)
 *
 *           C_{2,2} = \alpha*T_{1,2}**H*T_{1,2} + C_{2,2}
@@ -352,7 +352,7 @@
 *           C_{2,1} = \alpha*T_{2,2}**H*T_{2,1} + \beta*C_{2,1}
 *           C_{2,2} = \alpha*T_{2,2}**H*T_{2,2} + \beta*C_{2,2}
 *
-*           Thus, we compute the following 
+*           Thus, we compute the following
 *
 *           C_{1,1} = \alpha*T_{1,1}**H*T_{1,1} + \beta*C_{1,1} (This routine)
 *           C_{1,1} = \alpha*T_{2,1}**H*T_{2,1} + C_{1,1}       (SYRK)
@@ -361,7 +361,7 @@
 *           Compute C_{1,1}
 *           C_{1,1} = \alpha*T_{1,1}**H*T_{1,1} + \beta*C_{1,1}
 *
-            CALL CHT3RK(UPLOT, UPLOC, TRANS, DIAG, L, ALPHA,
+            CALL CHETRRK(UPLOT, UPLOC, TRANS, DIAG, L, ALPHA,
      $            T, LDT, BETA, C, LDC)
 *
 *           C_{1,1} = \alpha*T_{2,1}**H*T_{2,1} + C_{1,1}
@@ -371,7 +371,7 @@
 *
 *           Compute C_{2,2} = \alpha*T_{2,2}**H*T_{2,2} + \beta*C_{2,2}
 *
-            CALL CHT3RK(UPLOT, UPLOC, TRANS, DIAG, K-L, ALPHA,
+            CALL CHETRRK(UPLOT, UPLOC, TRANS, DIAG, K-L, ALPHA,
      $            T(L+1,L+1), LDT, BETA, C(L+1,L+1), LDC)
             IF(UPPERC) THEN
 *
@@ -425,7 +425,7 @@
 *           C_{2,1} = \alpha*T_{2,2}*T_{1,2}**H + \beta*C_{2,1}
 *           C_{2,2} = \alpha*T_{2,2}*T_{2,2}**H + \beta*C_{2,2}
 *
-*           Thus, we compute the following 
+*           Thus, we compute the following
 *
 *           C_{1,1} = \alpha*T_{1,1}*T_{1,1}**H + \beta*C_{1,1} (This routine)
 *           C_{1,1} = \alpha*T_{1,2}*T_{1,2}**H + C_{1,1}       (SYRK)
@@ -434,7 +434,7 @@
 *           Compute C_{1,1}
 *           C_{1,1} = \alpha*T_{1,1}*T_{1,1}**H + \beta*C_{1,1}
 *
-            CALL CHT3RK(UPLOT, UPLOC, TRANS, DIAG, L, ALPHA,
+            CALL CHETRRK(UPLOT, UPLOC, TRANS, DIAG, L, ALPHA,
      $            T, LDT, BETA, C, LDC)
 *
 *           C_{1,1} = \alpha*T_{1,2}*T_{1,2}**H + C_{1,1}
@@ -444,7 +444,7 @@
 *
 *           Compute C_{2,2} = \alpha*T_{2,2}*T_{2,2}**H + \beta*C_{2,2}
 *
-            CALL CHT3RK(UPLOT, UPLOC, TRANS, DIAG, K-L, ALPHA,
+            CALL CHETRRK(UPLOT, UPLOC, TRANS, DIAG, K-L, ALPHA,
      $            T(L+1,L+1), LDT, BETA, C(L+1,L+1), LDC)
             IF(UPPERC) THEN
 *
@@ -493,7 +493,7 @@
 *           C_{2,1} = \alpha*T_{2,1}*T_{1,1}**H + \beta*C_{2,1}
 *           C_{2,2} = \alpha*T_{2,1}*T_{2,1}**H + \alpha*T_{2,2}*T_{2,2}**H + \beta*C_{2,2}
 *
-*           Thus, we compute the following 
+*           Thus, we compute the following
 *
 *           C_{1,1} = \alpha*T_{1,1}*T_{1,1}**H + \beta*C_{1,1} (This routine)
 *           C_{2,2} = \alpha*T_{2,2}*T_{2,2}**H + \beta*C_{2,2} (This routine)
@@ -501,13 +501,13 @@
 *
 *           Compute C_{1,1} = \alpha*T_{1,1}*T_{1,1}**H + \beta*C_{1,1}
 *
-            CALL CHT3RK(UPLOT, UPLOC, TRANS, DIAG, L, ALPHA, T, LDT,
+            CALL CHETRRK(UPLOT, UPLOC, TRANS, DIAG, L, ALPHA, T, LDT,
      $            BETA, C, LDC)
 *
 *           Compute C_{2,2}
 *           C_{2,2} = \alpha*T_{2,2}*T_{2,2}**H + \beta*C_{2,2}
 *
-            CALL CHT3RK(UPLOT, UPLOC, TRANS, DIAG, K-L, ALPHA,
+            CALL CHETRRK(UPLOT, UPLOC, TRANS, DIAG, K-L, ALPHA,
      $            T(L+1,L+1), LDT, BETA, C(L+1,L+1), LDC)
 *
 *           C_{2,2} = \alpha*T_{2,1}*T_{2,1}**H + C_{2,2}

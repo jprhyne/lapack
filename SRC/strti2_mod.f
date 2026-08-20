@@ -1,4 +1,4 @@
-*> \brief \b DTRTI2_MOD computes the inverse of a triangular matrix allowing for
+*> \brief \b STRTI2_MOD computes the inverse of a triangular matrix allowing for
 *>    a zero diagonal (unblocked algorithm).
 *
 *  =========== DOCUMENTATION ===========
@@ -6,7 +6,7 @@
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> Download DTRTI2 + dependencies
+*> Download STRTI2 + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dtrti2.f">
 *> [TGZ]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/dtrti2.f">
@@ -17,14 +17,14 @@
 *  Definition:
 *  ===========
 *
-*       SUBROUTINE DTRTI2( UPLO, DIAG, N, A, LDA, INFO )
+*       SUBROUTINE STRTI2( UPLO, DIAG, N, A, LDA, INFO )
 *
 *       .. Scalar Arguments ..
 *       CHARACTER          DIAG, UPLO
 *       INTEGER            INFO, LDA, N
 *       ..
 *       .. Array Arguments ..
-*       DOUBLE PRECISION   A( LDA, * )
+*       REAL   A( LDA, * )
 *       ..
 *
 *
@@ -33,7 +33,7 @@
 *>
 *> \verbatim
 *>
-*> DTRTI2_mod computes the inverse of a real upper or lower triangular
+*> STRTI2_MOD computes the inverse of a real upper or lower triangular
 *> matrix. It allows for a zero diagonal. If a diagonal is 0, then
 *> that column is set to 0
 *>
@@ -67,7 +67,7 @@
 *>
 *> \param[in,out] A
 *> \verbatim
-*>          A is DOUBLE PRECISION array, dimension (LDA,N)
+*>          A is REAL array, dimension (LDA,N)
 *>          On entry, the triangular matrix A.  If UPLO = 'U', the
 *>          leading n by n upper triangular part of the array A contains
 *>          the upper triangular matrix, and the strictly lower
@@ -106,7 +106,7 @@
 *> \ingroup trti2
 *
 *  =====================================================================
-      SUBROUTINE DTRTI2_MOD( UPLO, DIAG, N, A, LDA, INFO )
+      SUBROUTINE STRTI2_MOD( UPLO, DIAG, N, A, LDA, INFO )
       IMPLICIT NONE
 *
 *  -- LAPACK computational routine --
@@ -118,19 +118,19 @@
       INTEGER            INFO, LDA, N
 *     ..
 *     .. Array Arguments ..
-      DOUBLE PRECISION   A( LDA, * )
+      REAL   A( LDA, * )
 *     ..
 *
 *  =====================================================================
 *
 *     .. Parameters ..
-      DOUBLE PRECISION   ZERO, ONE
-      PARAMETER          ( ZERO = 0.0D+0, ONE = 1.0D+0 )
+      REAL   ZERO, ONE
+      PARAMETER          ( ZERO = 0.0E+0, ONE = 1.0E+0 )
 *     ..
 *     .. Local Scalars ..
       LOGICAL            UNIT, UPPER
       INTEGER            J
-      DOUBLE PRECISION   AJJ
+      REAL   AJJ
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
@@ -173,18 +173,18 @@
             ! Then all 0s should propogate to the right in the
             ! same column
             IF( UNIT ) THEN
-               CALL DSCAL(J-1, -ONE, A(1,J), 1)
+               CALL SSCAL(J-1, -ONE, A(1,J), 1)
             ELSE
                ! This is the only case where we need to check
                ! for zero diagonals
                IF( A(J,J).EQ.ZERO ) THEN
                   ! Set this column to 0
-                  CALL DLASET('a', J, 1, ZERO, ZERO, A(1,J), LDA)
+                  CALL SLASET('a', J, 1, ZERO, ZERO, A(1,J), LDA)
                ELSE
                   ! In this case we must manually invert the diagonal
                   ! element then propogate
                   A(J,J) = ONE / A(J,J)
-                  CALL DSCAL(J-1, -A(J,J), A(1,J), 1)
+                  CALL SSCAL(J-1, -A(J,J), A(1,J), 1)
                END IF
             END IF
             ! Regardless of what we have done above, we want to replace
@@ -192,7 +192,7 @@
             ! A(1:j-1,1:j-1) x = A(1:j-1,j) and store this
             ! inside A(1:j-1,j) but potentially having some
             ! zeros on the diagonal of A, so we call our modified routine
-            CALL DTRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
+            CALL STRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
      $         J-1, 1, ONE, A, LDA, A(1,J), LDA)
          END DO
       ELSE
@@ -201,17 +201,17 @@
 *
          DO J = 1, N
             IF( UNIT ) THEN
-               CALL DSCAL(N-J, -ONE, A(J+1,J), 1)
+               CALL SSCAL(N-J, -ONE, A(J+1,J), 1)
             ELSE
                IF( A(J,J).EQ.ZERO ) THEN
                   ! Set this column to 0
-                  CALL DLASET('a', N-J, 1, ZERO, ZERO, A(J+1,J), LDA)
-                  !call dlaset('a', 1, j-1, zero, zero, a(j+1,1), lda)
+                  CALL SLASET('a', N-J, 1, ZERO, ZERO, A(J+1,J), LDA)
+                  !call slaset('a', 1, j-1, zero, zero, a(j+1,1), lda)
                ELSE
                   ! In this case we must manually invert the diagonal
                   ! element then propogate
                   A(J,J) = ONE / A(J,J)
-                  CALL DSCAL(N-J, -A(J,J), A(J+1,J), 1)
+                  CALL SSCAL(N-J, -A(J,J), A(J+1,J), 1)
                END IF
             END IF
             ! Regardless of what we have done above, we want to replace
@@ -219,13 +219,13 @@
             ! A(j+1:n,j+1:n) x = A(j+1:n,j) and store this
             ! inside A(j+1:n,j) but potentially having some
             ! zeros on the diagonal of A, so we call our modified routine
-            CALL DTRSM_MOD('Left', 'Lower', 'No Transpose', DIAG,
+            CALL STRSM_MOD('Left', 'Lower', 'No Transpose', DIAG,
      $         N-J, 1, ONE, A(J+1,J+1), LDA, A(J+1,J), LDA)
          END DO
       END IF
 *
       RETURN
 *
-*     End of DTRTI2_MOD
+*     End of STRTI2_MOD
 *
       END

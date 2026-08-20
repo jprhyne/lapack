@@ -199,7 +199,7 @@
 *
 *     .. External Subroutines ..
 *
-      EXTERNAL          DST3RK, DSYRK, DTRTI2_MOD, DLARFT_LVL2,
+      EXTERNAL          DSYTRRK, DSYRK, DTRTRI_MOD, DLARFT_LVL2,
      $                  XERBLA
 *
 *     .. External Functions..
@@ -249,34 +249,7 @@
 *
 *     Beginning of executable statements
 *
-*     This method is only viable for non-singular V matrices with
-*     non-zero associated tau values. We know for a fact that V is
-*     always non-singular as V is unit triangular, however tau can
-*     be 0. Thus, if we detect this case, we bail to the level-2 BLAS
-*     implementation, which is known to work in these instances, which
-*     will never bail back to this implementation.
-*
-*     Note: We are not bailing to the standard larft as that subroutine
-*     may call this subroutine as a terminating case.
-*     We could also just error out by calling XERBLA if this is desired
-*
       INVT = LSAME(APPLYT, 'M')
-!     DO I = 1, K
-!        IF( TAU(I).EQ.ZERO.and.(.not.qr) ) THEN
-!           IF (.NOT.INVT) THEN
-!
-!              There are no existing routines that perform this operation, so we
-!              error out. We report jobt as the incorrect flag since APPLYT='M' is
-!              allowed for this case
-!
-!              CALL XERBLA( 'DLARFT_UT', 3 )
-!              RETURN
-!           END IF
-!           CALL DLARFT_LVL2(DIRECT, STOREV, N, K, V, LDV, TAU,
-!    $            T, LDT)
-!           RETURN
-!        END IF
-!     END DO
 *
 *     Note that in the following cases, we use ut(A) and lt(A) to
 *     denote the upper and lower triangular components of the matrix A
@@ -302,7 +275,7 @@
 *
 *        Compute T = ut(V_1**H * V_1)
 *
-         CALL DST3RK('Lower', 'Upper', 'Transpose', 'Unit', K, ONE,
+         CALL DSYTRRK('Lower', 'Upper', 'Transpose', 'Unit', K, ONE,
      $         V, LDV, ZERO, T, LDT)
 *
 *        Compute T = ut(V_2**H * V_2 + T)
@@ -348,7 +321,7 @@
 *
 *        Compute T = ut(V_1 * V_1**H)
 *
-         CALL DST3RK('Upper', 'Upper', 'No Transpose', 'Unit', K,
+         CALL DSYTRRK('Upper', 'Upper', 'No Transpose', 'Unit', K,
      $         ONE, V, LDV, ZERO, T, LDT)
 *
 *        Compute T = ut(V_2 * V_2**H + T)
@@ -372,7 +345,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL DTRTI2_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
+            CALL DTRTRI_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(LQT) THEN
 *
@@ -394,7 +367,7 @@
 *
 *        Compute T = lt(V_1 * V_1**H)
 *
-         CALL DST3RK('Upper', 'Lower', 'No Transpose', 'Unit', K,
+         CALL DSYTRRK('Upper', 'Lower', 'No Transpose', 'Unit', K,
      $         ONE, V, LDV, ZERO, T, LDT)
 *
 *        Compute T = lt(V_2 * V_2**H + T)
@@ -418,7 +391,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL DTRTI2_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
+            CALL DTRTRI_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(QL) THEN
 *
@@ -441,7 +414,7 @@
 *
 *        Compute T = lt(V_1**H * V_1)
 *
-         CALL DST3RK('Upper', 'Lower', 'Transpose', 'Unit', K, ONE,
+         CALL DSYTRRK('Upper', 'Lower', 'Transpose', 'Unit', K, ONE,
      $         V(N-K+1,1), LDV, ZERO, T, LDT)
 *
 *        Compute T = lt(V_2**H * V_2 + T)
@@ -465,7 +438,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL DTRTI2_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
+            CALL DTRTRI_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(RQ) THEN
 *
@@ -487,7 +460,7 @@
 *
 *        Compute T = lt(V_1 * V_1**H)
 *
-         CALL DST3RK('Lower', 'Lower', 'No Transpose', 'Unit', K,
+         CALL DSYTRRK('Lower', 'Lower', 'No Transpose', 'Unit', K,
      $         ONE, V(1,N-K+1), LDV, ZERO, T, LDT)
 *
 *        Compute T = lt(V_2 * V_2**H + T)
@@ -511,7 +484,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL DTRTI2_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
+            CALL DTRTRI_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(RQT) THEN
 *
@@ -533,7 +506,7 @@
 *
 *        Compute T = ut(V_1 * V_1**H)
 *
-         CALL DST3RK('Lower', 'Upper', 'No Transpose', 'Unit', K,
+         CALL DSYTRRK('Lower', 'Upper', 'No Transpose', 'Unit', K,
      $         ONE, V(1,N-K+1), LDV, ZERO, T, LDT)
 *
 *        Compute T = ut(V_2 * V_2**H + T)
@@ -557,7 +530,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL DTRTI2_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
+            CALL DTRTRI_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
          END IF
       END IF
       END SUBROUTINE

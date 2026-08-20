@@ -1,4 +1,4 @@
-*> \brief \b DTRSM_lvl2_mod solves a singular triangular system
+*> \brief \b CTRSM_LVL2_MOD solves a singular triangular system
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -8,15 +8,15 @@
 *  Definition:
 *  ===========
 *
-*       SUBROUTINE DTRSM_lvl2_mod(SIDE,UPLO,TRANSA,DIAG,M,N,ALPHA,A,LDA,B,LDB)
+*       SUBROUTINE CTRSM_LVL2_MOD(SIDE,UPLO,TRANSA,DIAG,M,N,ALPHA,A,LDA,B,LDB)
 *
 *       .. Scalar Arguments ..
-*       DOUBLE PRECISION ALPHA
+*       COMPLEX ALPHA
 *       INTEGER LDA,LDB,M,N
 *       CHARACTER DIAG,SIDE,TRANSA,UPLO
 *       ..
 *       .. Array Arguments ..
-*       DOUBLE PRECISION A(LDA,*),B(LDB,*)
+*       COMPLEX A(LDA,*),B(LDB,*)
 *       ..
 *
 *
@@ -25,7 +25,7 @@
 *>
 *> \verbatim
 *>
-*> DTRSM_lvl2_mod  solves one of the matrix equations
+*> CTRSM_LVL2_MOD  solves one of the matrix equations
 *>
 *>    op( A )*X = alpha*B,   or   X*op( A ) = alpha*B,
 *>
@@ -103,7 +103,7 @@
 *>
 *> \param[in] ALPHA
 *> \verbatim
-*>          ALPHA is DOUBLE PRECISION.
+*>          ALPHA is COMPLEX.
 *>           On entry,  ALPHA specifies the scalar  alpha. When  alpha is
 *>           zero then  A is not referenced and  B need not be set before
 *>           entry.
@@ -111,7 +111,7 @@
 *>
 *> \param[in] A
 *> \verbatim
-*>          A is DOUBLE PRECISION array, dimension ( LDA, k ),
+*>          A is COMPLEX array, dimension ( LDA, k ),
 *>           where k is m when SIDE = 'L' or 'l'
 *>             and k is n when SIDE = 'R' or 'r'.
 *>           Before entry  with  UPLO = 'U' or 'u',  the  leading  k by k
@@ -137,7 +137,7 @@
 *>
 *> \param[in,out] B
 *> \verbatim
-*>          B is DOUBLE PRECISION array, dimension ( LDB, N )
+*>          B is COMPLEX array, dimension ( LDB, N )
 *>           Before entry,  the leading  m by n part of the array  B must
 *>           contain  the  right-hand  side  matrix  B,  and  on exit  is
 *>           overwritten by the solution matrix  X.
@@ -165,7 +165,7 @@
 *  =====================
 *>
 *> \verbatim
-*> Modified from dtrsm originally written in 1989
+*> Modified from ctrsm originally written in 1989
 *> This routine solves singular triangular systems with explicit
 *> 0s stored only on the diagonal of A on input. We assume relevant
 *> parts of B are 0 without checking the entry values
@@ -173,16 +173,16 @@
 *> \endverbatim
 *>
 *  =====================================================================
-      SUBROUTINE DTRSM_LVL2_MOD(SIDE, UPLO, TRANSA, DIAG, M, N,
+      SUBROUTINE CTRSM_LVL2_MOD(SIDE, UPLO, TRANSA, DIAG, M, N,
      $      ALPHA, A, LDA, B, LDB)
       IMPLICIT NONE
 *     .. Scalar Arguments ..
-      DOUBLE PRECISION ALPHA
+      COMPLEX ALPHA
       INTEGER LDA,LDB,M,N
       CHARACTER DIAG,SIDE,TRANSA,UPLO
 *     ..
 *     .. Array Arguments ..
-      DOUBLE PRECISION A(LDA,*),B(LDB,*)
+      COMPLEX A(LDA,*),B(LDB,*)
 *     ..
 *
 *  =====================================================================
@@ -198,13 +198,13 @@
       INTRINSIC MAX
 *     ..
 *     .. Local Scalars ..
-      DOUBLE PRECISION TEMP
+      COMPLEX TEMP
       INTEGER I,INFO,J,K,NROWA
-      LOGICAL LSIDE,NOUNIT,UPPER,NOTRAN
+      LOGICAL LSIDE,NOUNIT,UPPER,NOTRAN,CONJA
 *     ..
 *     .. Parameters ..
-      DOUBLE PRECISION ONE,ZERO
-      PARAMETER (ONE=1.0D+0,ZERO=0.0D+0)
+      COMPLEX ONE,ZERO
+      PARAMETER (ONE=1.0E+0,ZERO=0.0E+0)
 *     ..
 *
 *     Test the input parameters.
@@ -240,7 +240,7 @@
          INFO = 11
       END IF
       IF (INFO.NE.0) THEN
-         CALL XERBLA('DTRSM ',INFO)
+         CALL XERBLA('CTRSM ',INFO)
          RETURN
       END IF
 *
@@ -252,7 +252,7 @@
 *
       IF (ALPHA.EQ.ZERO) THEN
 
-         CALL DLASET('All', M, N, ZERO, ZERO, B, LDB)
+         CALL CLASET('All', M, N, ZERO, ZERO, B, LDB)
          RETURN
       END IF
 *
@@ -262,10 +262,11 @@
       NOUNIT = LSAME(DIAG,'N')
       UPPER = LSAME(UPLO,'U')
       NOTRAN = LSAME(TRANSA,'N')
+      CONJA = LSAME(TRANSA,'C')
       ! Pre-scale by alpha if necessary
       IF (ALPHA.NE.ONE) THEN
          DO J = 1,N
-            CALL DSCAL(M, ALPHA, B(1,J), 1)
+            CALL CSCAL(M, ALPHA, B(1,J), 1)
          END DO
       END IF
 
@@ -311,6 +312,40 @@
                         DO I = K+1,M
                            B(I,J) = B(I,J)-TEMP*A(I,K)
                         END DO
+                     END IF
+                  END DO
+               END DO
+            END IF
+         ELSE IF( CONJA ) THEN
+            IF (UPPER) THEN
+               DO J = 1,N
+                  DO K = 1,M
+                     TEMP = B(K,J)
+                     DO I = K+1,M
+                        B(I,J) = B(I,J)-TEMP*CONJG(A(K,I))
+                     END DO
+                     IF (NOUNIT) THEN
+                        IF (A(K,K).EQ.ZERO) THEN
+                           B(K,J) = ZERO
+                        ELSE
+                           B(K,J) = B(K,J)/CONJG(A(K,K))
+                        END IF
+                     END IF
+                  END DO
+               END DO
+            ELSE ! A is lower triangular
+               DO J = 1,N
+                  DO K = M,1,-1
+                     TEMP = B(K,J)
+                     DO I = 1,K-1
+                        B(I,J) = B(I,J)-TEMP*CONJG(A(K,I))
+                     END DO
+                     IF (NOUNIT) THEN
+                        IF (A(K,K).EQ.ZERO) THEN
+                           B(K,J) = ZERO
+                        ELSE
+                           B(K,J) = B(K,J)/CONJG(A(K,K))
+                        END IF
                      END IF
                   END DO
                END DO
@@ -395,7 +430,41 @@
                   END DO
                END DO
             END IF
-         ELSE
+         ELSE IF( CONJA ) THEN
+            IF (UPPER) THEN
+               DO I = 1,M
+                  DO K = 1,N
+                     TEMP = B(I,K)
+                     DO J = K+1,N
+                        B(I,J) = B(I,J)-TEMP*CONJG(A(K,J))
+                     END DO
+                     IF (NOUNIT) THEN
+                        IF (A(K,K).EQ.ZERO) THEN
+                           B(I,K) = ZERO
+                        ELSE
+                           B(I,K) = B(I,K)/CONJG(A(K,K))
+                        END IF
+                     END IF
+                  END DO
+               END DO
+            ELSE
+               DO I = 1,M
+                  DO K = N,1,-1
+                     TEMP = B(I,K)
+                     DO J = 1,K-1
+                        B(I,J) = B(I,J)-TEMP*CONJG(A(K,J))
+                     END DO
+                     IF (NOUNIT) THEN
+                        IF (A(K,K).EQ.ZERO) THEN
+                           B(I,K) = ZERO
+                        ELSE
+                           B(I,K) = B(I,K)/CONJG(A(K,K))
+                        END IF
+                     END IF
+                  END DO
+               END DO
+            END IF
+         ELSE ! A is transposed
             IF (UPPER) THEN
                DO I = 1,M
                   DO K = 1,N
@@ -433,6 +502,6 @@
       END IF
       RETURN
 *
-*     End of DTRSM
+*     End of CTRSM
 *
       END

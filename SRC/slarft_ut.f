@@ -199,7 +199,7 @@
 *
 *     .. External Subroutines ..
 *
-      EXTERNAL          SST3RK, SSYRK, STRTRI
+      EXTERNAL          SSYTRRK, SSYRK, STRTRI_MOD
 *
 *     .. External Functions..
 *
@@ -209,7 +209,7 @@
 *     Beginning of executable statements
 *
 *     This method is only viable for non-singular V matrices with
-*     non-zero associated tau values. We know for a fact that V is 
+*     non-zero associated tau values. We know for a fact that V is
 *     always non-singular as V is unit triangular, however tau can
 *     be 0. Thus, if we detect this case, we bail to the level-2 BLAS
 *     implementation, which is known to work in these instances, which
@@ -264,7 +264,7 @@
 *
       RQT = TDIRF.AND.(.NOT.COLV)
 *
-*     RQ happens when we have backward direction in row storage and want to 
+*     RQ happens when we have backward direction in row storage and want to
 *     compute the T that we would normally compute
 *
       RQ = (.NOT.RQT).AND.(.NOT.COLV)
@@ -277,8 +277,8 @@
 *        Break V apart into 2 components
 *
 *        V = |-----|
-*            | V_1 | k   
-*            | V_2 | n-k 
+*            | V_1 | k
+*            | V_2 | n-k
 *            |-----|
 *              k
 *
@@ -293,7 +293,7 @@
 *
 *        Compute T = ut(V_1**H * V_1)
 *
-         CALL SST3RK('Lower', 'Upper', 'Transpose', 'Unit', K, ONE,
+         CALL SSYTRRK('Lower', 'Upper', 'Transpose', 'Unit', K, ONE,
      $         V, LDV, ZERO, T, LDT)
 *
 *        Compute T = ut(V_2**H * V_2 + T)
@@ -305,7 +305,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZERO ) THEN
+               T(I,I) = ZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -313,7 +317,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL STRTRI('Upper', 'Non-Unit', K, T, LDT, INFO)
+            CALL STRTRI_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(LQ) THEN
 *
@@ -335,7 +339,7 @@
 *
 *        Compute T = ut(V_1 * V_1**H)
 *
-         CALL SST3RK('Upper', 'Upper', 'No Transpose', 'Unit', K,
+         CALL SSYTRRK('Upper', 'Upper', 'No Transpose', 'Unit', K,
      $         ONE, V, LDV, ZERO, T, LDT)
 *
 *        Compute T = ut(V_2 * V_2**H + T)
@@ -347,7 +351,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZERO ) THEN
+               T(I,I) = ZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -355,7 +363,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL STRTRI('Upper', 'Non-Unit', K, T, LDT, INFO)
+            CALL STRTRI_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(LQT) THEN
 *
@@ -377,7 +385,7 @@
 *
 *        Compute T = lt(V_1 * V_1**H)
 *
-         CALL SST3RK('Upper', 'Lower', 'No Transpose', 'Unit', K,
+         CALL SSYTRRK('Upper', 'Lower', 'No Transpose', 'Unit', K,
      $         ONE, V, LDV, ZERO, T, LDT)
 *
 *        Compute T = lt(V_2 * V_2**H + T)
@@ -389,7 +397,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZERO ) THEN
+               T(I,I) = ZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -397,15 +409,15 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL STRTRI('Lower', 'Non-Unit', K, T, LDT, INFO)
+            CALL STRTRI_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(QL) THEN
 *
 *        Break V apart into 2 components
 *
 *        V = |-----|
-*            | V_2 | n-k   
-*            | V_1 | k 
+*            | V_2 | n-k
+*            | V_1 | k
 *            |-----|
 *              k
 *
@@ -420,7 +432,7 @@
 *
 *        Compute T = lt(V_1**H * V_1)
 *
-         CALL SST3RK('Upper', 'Lower', 'Transpose', 'Unit', K, ONE,
+         CALL SSYTRRK('Upper', 'Lower', 'Transpose', 'Unit', K, ONE,
      $         V(N-K+1,1), LDV, ZERO, T, LDT)
 *
 *        Compute T = lt(V_2**H * V_2 + T)
@@ -432,7 +444,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZERO ) THEN
+               T(I,I) = ZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -440,7 +456,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL STRTRI('Lower', 'Non-Unit', K, T, LDT, INFO)
+            CALL STRTRI_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(RQ) THEN
 *
@@ -462,7 +478,7 @@
 *
 *        Compute T = lt(V_1 * V_1**H)
 *
-         CALL SST3RK('Lower', 'Lower', 'No Transpose', 'Unit', K,
+         CALL SSYTRRK('Lower', 'Lower', 'No Transpose', 'Unit', K,
      $         ONE, V(1,N-K+1), LDV, ZERO, T, LDT)
 *
 *        Compute T = lt(V_2 * V_2**H + T)
@@ -474,7 +490,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZERO ) THEN
+               T(I,I) = ZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -482,7 +502,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL STRTRI('Lower', 'Non-Unit', K, T, LDT, INFO)
+            CALL STRTRI_MOD('Lower', 'Non-Unit', K, T, LDT, INFO)
          END IF
       ELSE IF(RQT) THEN
 *
@@ -504,7 +524,7 @@
 *
 *        Compute T = ut(V_1 * V_1**H)
 *
-         CALL SST3RK('Lower', 'Upper', 'No Transpose', 'Unit', K,
+         CALL SSYTRRK('Lower', 'Upper', 'No Transpose', 'Unit', K,
      $         ONE, V(1,N-K+1), LDV, ZERO, T, LDT)
 *
 *        Compute T = ut(V_2 * V_2**H + T)
@@ -516,7 +536,11 @@
 *           Note: we ensured all of these values are non-zero above
 *
          DO I = 1, K
-            T(I,I) = 1/TAU(I)
+            IF( TAU(I).EQ.ZERO ) THEN
+               T(I,I) = ZERO
+            ELSE
+               T(I,I) = 1/TAU(I)
+            END IF
          END DO
 *
 *        Compute T = T^{-1}
@@ -524,7 +548,7 @@
 *           non-zero
 *
          IF( INVT ) THEN
-            CALL STRTRI('Upper', 'Non-Unit', K, T, LDT, INFO)
+            CALL STRTRI_MOD('Upper', 'Non-Unit', K, T, LDT, INFO)
          END IF
       END IF
       END SUBROUTINE

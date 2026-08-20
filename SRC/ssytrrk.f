@@ -1,4 +1,4 @@
-*> \brief \b DST3RK
+*> \brief \b SSYTRRK
 *
 *  =========== DOCUMENTATION ===========
 *
@@ -8,16 +8,16 @@
 *  Definition:
 *  ===========
 *
-*     RECURSIVE SUBROUTINE DST3RK(UPLOA, UPLOC, TRANS, DIAG, K,
+*     RECURSIVE SUBROUTINE SSYTRRK(UPLOA, UPLOC, TRANS, DIAG, K,
 *    $            ALPHA, A, LDA, BETA, C, LDC)
 *
 *     .. Scalar Arguments ..
-*     DOUBLE PRECISION  ALPHA,BETA
+*     REAL  ALPHA,BETA
 *     INTEGER           K,LDA,LDC
 *     CHARACTER         UPLOA,UPLOC,TRANS,DIAG
 *     ..
 *     .. Array Arguments ..
-*     DOUBLE PRECISION  A(LDA,*),C(LDC,*)
+*     REAL  A(LDA,*),C(LDC,*)
 *
 *
 *> \par Purpose:
@@ -25,7 +25,7 @@
 *>
 *> \verbatim
 *>
-*> DST3RK  performs one of the symmetric rank k operations
+*> SSYTRRK  performs one of the symmetric rank k operations
 *>
 *>    C := alpha*A*A**T + beta*C,
 *>
@@ -102,13 +102,13 @@
 *>
 *> \param[in] ALPHA
 *> \verbatim
-*>          ALPHA is DOUBLE PRECISION.
+*>          ALPHA is REAL.
 *>           On entry, ALPHA specifies the scalar alpha.
 *> \endverbatim
 *>
 *> \param[in] A
 *> \verbatim
-*>          A is DOUBLE PRECISION array, dimension ( LDA, k ).
+*>          A is REAL array, dimension ( LDA, k ).
 *>          If UPLOA = 'U' or 'u', then the leading k by k upper triangular
 *>          part of the array A must contain the upper triangular part of
 *>          the triangular matrix, and the strictly lower triangular part of A
@@ -128,13 +128,13 @@
 *>
 *> \param[in] BETA
 *> \verbatim
-*>          BETA is DOUBLE PRECISION.
+*>          BETA is REAL.
 *>           On entry, BETA specifies the scalar beta.
 *> \endverbatim
 *>
 *> \param[in,out] C
 *> \verbatim
-*>          C is DOUBLE PRECISION array, dimension ( LDC, N )
+*>          C is REAL array, dimension ( LDC, N )
 *>           Before entry  with  UPLOC = 'U' or 'u',  the leading  k by k
 *>           upper triangular part of the array C must contain the upper
 *>           triangular part  of the  symmetric matrix  and the strictly
@@ -177,27 +177,27 @@
 *> \endverbatim
 *>
 *  =====================================================================
-      RECURSIVE SUBROUTINE DST3RK(UPLOA, UPLOC, TRANS, DIAG, K,
+      RECURSIVE SUBROUTINE SSYTRRK(UPLOA, UPLOC, TRANS, DIAG, K,
      $            ALPHA, A, LDA, BETA, C, LDC)
 *
 *     .. Scalar Arguments ..
-      DOUBLE PRECISION  ALPHA,BETA
+      REAL  ALPHA,BETA
       INTEGER           K,LDA,LDC
       CHARACTER         UPLOA,UPLOC,TRANS,DIAG
 *     ..
 *     .. Array Arguments ..
-      DOUBLE PRECISION  A(LDA,*),C(LDC,*)
+      REAL  A(LDA,*),C(LDC,*)
 *     ..
 *     .. Parameters ..
-      DOUBLE PRECISION  ZERO, ONE
-      PARAMETER(ZERO = 0.0D+0, ONE = 1.0D+0)
+      REAL  ZERO, ONE
+      PARAMETER(ZERO = 0.0E+0, ONE = 1.0E+0)
 *     ..
 *     .. Local Scalars ..
       INTEGER           L,NX
       LOGICAL           UPPERA,UPPERC,TRANSL,UNITT
 *     ..
 *     .. External Subroutines ..
-      EXTERNAL          DSYRK,DTRMMOOP
+      EXTERNAL          SSYRK,STRMMOOP
 *     ..
 *     .. External Functions ..
       INTEGER           ILAENV
@@ -214,12 +214,12 @@
 *
 *     Determine the crossover point into the unblocked variant (and base case)
 *
-      NX = ILAENV(3, 'DST3RK', UPLOA // UPLOC // TRANS // DIAG,
+      NX = ILAENV(3, 'DSYTRRK', UPLOA // UPLOC // TRANS // DIAG,
      $      K, -1, -1, -1)
 *
       IF(K.LT.NX.OR.K.EQ.1) THEN
-         CALL DSTRK(UPLOA, UPLOC, TRANS, DIAG, K, ALPHA, A, LDA,
-     $         BETA, C, LDC)
+         CALL SSYTRRK_LVL2(UPLOA, UPLOC, TRANS, DIAG, K,
+     $         ALPHA, A, LDA, BETA, C, LDC)
          RETURN
       END IF
 *
@@ -276,31 +276,31 @@
 *
 *           Compute C_{1,1} = \alpha*A_{1,1}**H*A_{1,1} + \beta C_{1,1}
 *
-            CALL DST3RK(UPLOA, UPLOC, TRANS, DIAG, L, ALPHA,
+            CALL SSYTRRK(UPLOA, UPLOC, TRANS, DIAG, L, ALPHA,
      $            A, LDA, BETA, C, LDC)
 *
 *           Compute C_{2,2}
 *           C_{2,2} = \alpha*A_{2,2}**H*A_{2,2} + \beta C_{2,2}
 *
-            CALL DST3RK(UPLOA, UPLOC, TRANS, DIAG, K-L, ALPHA,
+            CALL SSYTRRK(UPLOA, UPLOC, TRANS, DIAG, K-L, ALPHA,
      $            A(L+1,L+1), LDA, BETA, C(L+1,L+1), LDC)
 *
 *           C_{2,2} = \alpha*A_{1,2}**H*A_{1,2} + C_{2,2}
 *
-            CALL DSYRK(UPLOC, TRANS, K-L, L, ALPHA, A(1,L+1), LDA,
+            CALL SSYRK(UPLOC, TRANS, K-L, L, ALPHA, A(1,L+1), LDA,
      $            ONE, C(L+1,L+1), LDC)
             IF(UPPERC) THEN
 *
 *              Compute C_{1,2} = \alpha*A_{1,1}**H*A_{1,2} + \beta C_{1,2} (TRMMOOP)
 *
-               CALL DTRMMOOP('Left', UPLOA, 'Transpose',
+               CALL STRMMOOP('Left', UPLOA, 'Transpose',
      $               'No Transpose', DIAG, L, K-L, ALPHA, A, LDA,
      $               A(1, L+1), LDA, BETA, C(1,L+1), LDC)
             ELSE
 *
 *              Compute C_{2,1} = \alpha*A_{1,2}**H*A_{1,1} + \beta C_{2,1} (TRMMOOP)
 *
-               CALL DTRMMOOP('Right', UPLOA, 'No Transpose',
+               CALL STRMMOOP('Right', UPLOA, 'No Transpose',
      $               'Transpose', DIAG, K-L, L, ALPHA, A, LDA,
      $               A(1, L+1), LDA, BETA, C(L+1,1), LDC)
             END IF
@@ -343,30 +343,30 @@
 *           Compute C_{1,1}
 *           C_{1,1} = \alpha*A_{1,1}**H*A_{1,1} + \beta*C_{1,1}
 *
-            CALL DST3RK(UPLOA, UPLOC, TRANS, DIAG, L, ALPHA,
+            CALL SSYTRRK(UPLOA, UPLOC, TRANS, DIAG, L, ALPHA,
      $            A, LDA, BETA, C, LDC)
 *
 *           C_{1,1} = \alpha*A_{2,1}**H*A_{2,1} + C_{1,1}
 *
-            CALL DSYRK(UPLOC, TRANS, L, K-L, ALPHA, A(L+1,1), LDA,
+            CALL SSYRK(UPLOC, TRANS, L, K-L, ALPHA, A(L+1,1), LDA,
      $            ONE, C, LDC)
 *
 *           Compute C_{2,2} = \alpha*A_{2,2}**H*A_{2,2} + \beta*C_{2,2}
 *
-            CALL DST3RK(UPLOA, UPLOC, TRANS, DIAG, K-L, ALPHA,
+            CALL SSYTRRK(UPLOA, UPLOC, TRANS, DIAG, K-L, ALPHA,
      $            A(L+1,L+1), LDA, BETA, C(L+1,L+1), LDC)
             IF(UPPERC) THEN
 *
 *              Compute C_{1,2} = \alpha*A_{2,1}**H*A_{2,2} + \beta*C_{1,2}
 *
-               CALL DTRMMOOP('Right', UPLOA, 'No Transpose',
+               CALL STRMMOOP('Right', UPLOA, 'No Transpose',
      $               'Transpose', DIAG, L, K-L, ALPHA, A(L+1,L+1), LDA,
      $                A(L+1,1), LDA, BETA, C(1,L+1), LDC)
             ELSE
 *
 *              Compute C_{2,1} = \alpha*A_{2,2}**H*A_{2,1} + \beta*C_{2,1}
 *
-               CALL DTRMMOOP('Left', UPLOA, 'Transpose',
+               CALL STRMMOOP('Left', UPLOA, 'Transpose',
      $               'No Transpose', DIAG, K-L, L, ALPHA,
      $               A(L+1,L+1), LDA, A(L+1, 1), LDA, BETA,
      $               C(L+1,1), LDC)
@@ -415,23 +415,23 @@
 *           Compute C_{1,1}
 *           C_{1,1} = \alpha*A_{1,1}*A_{1,1}**H + \beta*C_{1,1}
 *
-            CALL DST3RK(UPLOA, UPLOC, TRANS, DIAG, L, ALPHA,
+            CALL SSYTRRK(UPLOA, UPLOC, TRANS, DIAG, L, ALPHA,
      $            A, LDA, BETA, C, LDC)
 *
 *           C_{1,1} = \alpha*A_{1,2}*A_{1,2}**H + C_{1,1}
 *
-            CALL DSYRK(UPLOC, TRANS, L, K-L, ALPHA, A(1,L+1), LDA,
+            CALL SSYRK(UPLOC, TRANS, L, K-L, ALPHA, A(1,L+1), LDA,
      $            ONE, C, LDC)
 *
 *           Compute C_{2,2} = \alpha*A_{2,2}*A_{2,2}**H + \beta*C_{2,2}
 *
-            CALL DST3RK(UPLOA, UPLOC, TRANS, DIAG, K-L, ALPHA,
+            CALL SSYTRRK(UPLOA, UPLOC, TRANS, DIAG, K-L, ALPHA,
      $            A(L+1,L+1), LDA, BETA, C(L+1,L+1), LDC)
             IF(UPPERC) THEN
 *
 *              Compute C_{1,2} = \alpha*A_{1,2}*A_{2,2}**H + \beta*C_{1,2}
 *
-               CALL DTRMMOOP('Right', UPLOA, 'Transpose',
+               CALL STRMMOOP('Right', UPLOA, 'Transpose',
      $               'No Transpose', DIAG, L, K-L, ALPHA,
      $               A(L+1,L+1), LDA, A(1, L+1), LDA, BETA,
      $               C(1,L+1), LDC)
@@ -439,7 +439,7 @@
 *
 *              Compute C_{2,1} = \alpha*A_{2,2}*A_{1,2}**H + \beta*C_{2,1}
 *
-               CALL DTRMMOOP('Left', UPLOA, 'No Transpose',
+               CALL STRMMOOP('Left', UPLOA, 'No Transpose',
      $               'Transpose', DIAG, K-L, L, ALPHA,
      $               A(L+1,L+1), LDA, A(1, L+1), LDA, BETA,
      $               C(L+1,1), LDC)
@@ -482,31 +482,31 @@
 *
 *           Compute C_{1,1} = \alpha*A_{1,1}*A_{1,1}**H + \beta*C_{1,1}
 *
-            CALL DST3RK(UPLOA, UPLOC, TRANS, DIAG, L, ALPHA, A, LDA,
+            CALL SSYTRRK(UPLOA, UPLOC, TRANS, DIAG, L, ALPHA, A, LDA,
      $            BETA, C, LDC)
 *
 *           Compute C_{2,2}
 *           C_{2,2} = \alpha*A_{2,2}*A_{2,2}**H + \beta*C_{2,2}
 *
-            CALL DST3RK(UPLOA, UPLOC, TRANS, DIAG, K-L, ALPHA,
+            CALL SSYTRRK(UPLOA, UPLOC, TRANS, DIAG, K-L, ALPHA,
      $            A(L+1,L+1), LDA, BETA, C(L+1,L+1), LDC)
 *
 *           C_{2,2} = \alpha*A_{2,1}*A_{2,1}**H + C_{2,2}
 *
-            CALL DSYRK(UPLOC, TRANS, K-L, L, ALPHA, A(L+1,1), LDA,
+            CALL SSYRK(UPLOC, TRANS, K-L, L, ALPHA, A(L+1,1), LDA,
      $            ONE, C(L+1,L+1), LDC)
             IF(UPPERC) THEN
 *
 *              Compute C_{1,2} = \alpha*A_{1,1}*A_{2,1}**H + \beta*C_{1,2}
 *
-               CALL DTRMMOOP('Left', UPLOA, 'No Transpose',
+               CALL STRMMOOP('Left', UPLOA, 'No Transpose',
      $               'Transpose', DIAG, L, K-L, ALPHA, A, LDA,
      $               A(L+1,1), LDA, BETA, C(1,L+1), LDC)
             ELSE
 *
 *              Compute C_{2,1} = \alpha*A_{2,1}*A_{1,1}**H + \beta*C_{2,1}
 *
-               CALL DTRMMOOP('Right', UPLOA, 'Transpose',
+               CALL STRMMOOP('Right', UPLOA, 'Transpose',
      $               'No Transpose', DIAG, K-L, L, ALPHA, A, LDA,
      $               A(L+1,1), LDA, BETA, C(L+1,1), LDC)
             END IF

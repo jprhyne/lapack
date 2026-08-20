@@ -1,11 +1,11 @@
-*> \brief \b DTRTRI_MOD
+*> \brief \b ZTRTRI_MOD
 *
 *  =========== DOCUMENTATION ===========
 *
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
 *
-*> Download DTRTRI_MOD + dependencies
+*> Download ZTRTRI_MOD + dependencies
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/DTRTRI_MOD.f">
 *> [TGZ]</a>
 *> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/DTRTRI_MOD.f">
@@ -16,14 +16,14 @@
 *  Definition:
 *  ===========
 *
-*       SUBROUTINE DTRTRI_MOD( UPLO, DIAG, N, A, LDA, INFO )
+*       RECURSIVE SUBROUTINE ZTRTRI_MOD( UPLO, DIAG, N, A, LDA, INFO )
 *
 *       .. Scalar Arguments ..
 *       CHARACTER          DIAG, UPLO
 *       INTEGER            INFO, LDA, N
 *       ..
 *       .. Array Arguments ..
-*       DOUBLE PRECISION   A( LDA, * )
+*       COMPLEX*16   A( LDA, * )
 *       ..
 *
 *
@@ -32,7 +32,7 @@
 *>
 *> \verbatim
 *>
-*> DTRTRI_MOD computes the inverse of a real upper or lower triangular
+*> ZTRTRI_MOD computes the inverse of a real upper or lower triangular
 *> matrix A.
 *>
 *> This is the Level 3 BLAS version of the algorithm.
@@ -63,7 +63,7 @@
 *>
 *> \param[in,out] A
 *> \verbatim
-*>          A is DOUBLE PRECISION array, dimension (LDA,N)
+*>          A is COMPLEX*16 array, dimension (LDA,N)
 *>          On entry, the triangular matrix A.  If UPLO = 'U', the
 *>          leading N-by-N upper triangular part of the array A contains
 *>          the upper triangular matrix, and the strictly lower
@@ -103,7 +103,7 @@
 *> \ingroup trtri
 *
 *  =====================================================================
-      SUBROUTINE DTRTRI_MOD( UPLO, DIAG, N, A, LDA, INFO )
+      RECURSIVE SUBROUTINE ZTRTRI_MOD( UPLO, DIAG, N, A, LDA, INFO )
       IMPLICIT NONE
 *
 *  -- LAPACK computational routine --
@@ -115,13 +115,13 @@
       INTEGER            INFO, LDA, N
 *     ..
 *     .. Array Arguments ..
-      DOUBLE PRECISION   A( LDA, * )
+      COMPLEX*16   A( LDA, * )
 *     ..
 *
 *  =====================================================================
 *
 *     .. Parameters ..
-      DOUBLE PRECISION   ONE, ZERO
+      COMPLEX*16   ONE, ZERO
       PARAMETER          ( ONE = 1.0D+0, ZERO = 0.0D+0 )
 *     ..
 *     .. Local Scalars ..
@@ -170,7 +170,7 @@
       NX = 1
 
       IF( N.LE.NX ) THEN
-         CALL DTRTI2_MOD(UPLO, DIAG, N, A, LDA, INFO)
+         CALL ZTRTI2_MOD(UPLO, DIAG, N, A, LDA, INFO)
          RETURN
       END IF
 
@@ -178,26 +178,26 @@
 
       IF( UPPER ) THEN
          ! Compute X_{22}
-         CALL DTRTRI_MOD('Upper', DIAG, N-K, A(K+1,K+1), LDA, INFO)
+         CALL ZTRTRI_MOD('Upper', DIAG, N-K, A(K+1,K+1), LDA, INFO)
          ! Propogate to A_{12}
-         CALL DTRMM('Right', 'Upper', 'No Transpose', DIAG, K, N-K,
+         CALL ZTRMM('Right', 'Upper', 'No Transpose', DIAG, K, N-K,
      $      -ONE, A(K+1,K+1), LDA, A(1,K+1), LDA)
          ! Solve for X_{12}
-         CALL DTRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
+         CALL ZTRSM_MOD('Left', 'Upper', 'No Transpose', DIAG,
      $      K, N-K, ONE, A, LDA, A(1,K+1), LDA)
          ! Solve for X_{11}
-         CALL DTRTRI_MOD('Upper', DIAG, K, A, LDA, INFO)
+         CALL ZTRTRI_MOD('Upper', DIAG, K, A, LDA, INFO)
       ELSE ! A is lower
          ! Compute X_{11}
-         CALL DTRTRI_MOD('Lower', DIAG, K, A, LDA, INFO)
+         CALL ZTRTRI_MOD('Lower', DIAG, K, A, LDA, INFO)
          ! Propogate to A_{21}
-         CALL DTRMM('Right', 'Lower', 'No Transpose', DIAG, N-K, K,
+         CALL ZTRMM('Right', 'Lower', 'No Transpose', DIAG, N-K, K,
      $      -ONE, A, LDA, A(K+1,1), LDA)
          ! Solve for X_{21}
-         CALL DTRSM_MOD('Left', 'Lower', 'No Transpose', DIAG,
+         CALL ZTRSM_MOD('Left', 'Lower', 'No Transpose', DIAG,
      $      N-K, K, ONE, A(K+1,K+1), LDA, A(K+1,1), LDA)
          ! Compute X_{22}
-         CALL DTRTRI_MOD('Lower', DIAG, N-K, A(K+1,K+1), LDA, INFO)
+         CALL ZTRTRI_MOD('Lower', DIAG, N-K, A(K+1,K+1), LDA, INFO)
       END IF
 
       END SUBROUTINE
