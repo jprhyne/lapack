@@ -71,13 +71,12 @@
 *>          = 'R': rowwise
 *> \endverbatim
 *>
-*> \param[in] JOBT
+*> \param[in] APPLYT
 *> \verbatim
-*>          JOBT is CHARACTER*1
-*>          Specifies if we are computing a T compatible with larfb
-*>          or not
-*>          = '1': Compute a compatible T (requires an inverse)
-*>          = '2': Do not compute such a T (must use TRSM version of larfb
+*>          APPLYT is CHARACTER*1
+*>          Specifies how we are going to apply T as follows:
+*>          = 'M': When applying, we will be multiplying (calls trtri)
+*>          = 'S': When applying, we will be solving a system.
 *> \endverbatim
 *>
 *> \param[in] N
@@ -166,8 +165,8 @@
 *> \endverbatim
 *>
 *  =====================================================================
-      SUBROUTINE CLARFT_UT( DIRECT, STOREV, JOBT, N, K, V, LDV, TAU,
-     $            T, LDT )
+      SUBROUTINE CLARFT_UT( DIRECT, STOREV, APPLYT, N, K, V, LDV,
+     $            TAU, T, LDT )
 *
 *  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
@@ -180,7 +179,7 @@
 *
 *     .. Scalar Arguments
 *
-      CHARACTER         DIRECT, STOREV, JOBT
+      CHARACTER         DIRECT, STOREV, APPLYT
       INTEGER           K, LDT, LDV, N, INFO
 *     ..
 *     .. Array Arguments ..
@@ -197,11 +196,14 @@
 *     .. Local Scalars ..
 *
       INTEGER           I
-      LOGICAL           QR,LQ,QL,RQ,LQT,RQT,DIRF,COLV,TDIRF,TCOLV,INVT
+      LOGICAL           QR,LQ,QL,RQ,LQT,RQT,DIRF,COLV,TDIRF,TCOLV,
+     $                  INVT
 *
 *     .. External Subroutines ..
 *
-      EXTERNAL          CHETRRK, CHERK, CTRTRI_MOD
+      EXTERNAL          CHETRRK, CHERK, CTRTRI_MOD, CLARFT_LVL2,
+     $                  XERBLA
+*
 *
 *     .. External Functions..
 *
@@ -212,7 +214,7 @@
 *
       INTRINSIC         CONJG
 *
-*     Beginning of executable statements
+*     If we reach here, then we guarantee the calls to strtri will not fail
 *
 *     Determine what kind of Q we need to compute
 *     We assume that if the user doesn't provide 'F' for DIRECT,
@@ -223,7 +225,7 @@
       TDIRF = LSAME(DIRECT,'T')
       COLV = LSAME(STOREV,'C')
       TCOLV = LSAME(STOREV,'T')
-      INVT = LSAME(JOBT, '1')
+      INVT = LSAME(APPLYT, 'M')
 *
 *     QR happens when we have forward direction in column storage
 *

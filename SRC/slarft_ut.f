@@ -23,7 +23,7 @@
 *       INTEGER            K, LDT, LDV, N
 *       ..
 *       .. Array Arguments ..
-*       REAL               T( LDT, * ), TAU( * ), V( LDV, * )
+*       REAL   T( LDT, * ), TAU( * ), V( LDV, * )
 *       ..
 *
 *
@@ -71,13 +71,12 @@
 *>          = 'R': rowwise
 *> \endverbatim
 *>
-*> \param[in] JOBT
+*> \param[in] APPLYT
 *> \verbatim
-*>          JOBT is CHARACTER*1
-*>          Specifies if we are computing a T compatible with larfb
-*>          or not
-*>          = '1': Compute a compatible T (requires an inverse)
-*>          = '2': Do not compute such a T (must use TRSM version of larfb
+*>          APPLYT is CHARACTER*1
+*>          Specifies how we are going to apply T as follows:
+*>          = 'M': When applying, we will be multiplying (calls trtri)
+*>          = 'S': When applying, we will be solving a system.
 *> \endverbatim
 *>
 *> \param[in] N
@@ -166,8 +165,8 @@
 *> \endverbatim
 *>
 *  =====================================================================
-      SUBROUTINE SLARFT_UT( DIRECT, STOREV, JOBT, N, K, V, LDV, TAU,
-     $            T, LDT )
+      SUBROUTINE SLARFT_UT( DIRECT, STOREV, APPLYT, N, K, V, LDV,
+     $            TAU, T, LDT )
 *
 *  -- LAPACK auxiliary routine --
 *  -- LAPACK is a software package provided by Univ. of Tennessee,    --
@@ -180,55 +179,35 @@
 *
 *     .. Scalar Arguments
 *
-      CHARACTER         DIRECT, STOREV, JOBT
+      CHARACTER         DIRECT, STOREV, APPLYT
       INTEGER           K, LDT, LDV, N, INFO
 *     ..
 *     .. Array Arguments ..
 *
-      REAL              T( LDT, * ), TAU( * ), V( LDV, * )
+      REAL  T( LDT, * ), TAU( * ), V( LDV, * )
 *     ..
 *     .. Parameters ..
 *
-      REAL              ZERO, ONE
+      REAL  ZERO, ONE
       PARAMETER(ZERO = 0.0E+0, ONE = 1.0E+0)
 *
 *     .. Local Scalars ..
 *
       INTEGER           I
-      LOGICAL           QR,LQ,QL,RQ,LQT,RQT,DIRF,COLV,TDIRF,TCOLV,INVT
+      LOGICAL           QR,LQ,QL,RQ,LQT,RQT,DIRF,COLV,TDIRF,TCOLV,
+     $                  INVT
 *
 *     .. External Subroutines ..
 *
-      EXTERNAL          SSYTRRK, SSYRK, STRTRI_MOD
+      EXTERNAL          SSYTRRK, SSYRK, STRTRI_MOD, SLARFT_LVL2,
+     $                  XERBLA
 *
 *     .. External Functions..
 *
       LOGICAL           LSAME
       EXTERNAL          LSAME
 *
-*     Beginning of executable statements
-*
-*     This method is only viable for non-singular V matrices with
-*     non-zero associated tau values. We know for a fact that V is
-*     always non-singular as V is unit triangular, however tau can
-*     be 0. Thus, if we detect this case, we bail to the level-2 BLAS
-*     implementation, which is known to work in these instances, which
-*     will never bail back to this implementation.
-*
-*     Note: We are not bailing to the standard larft as that subroutine
-*     may call this subroutine as a terminating case.
-*     We could also just error out by calling XERBLA if this is desired
-*
-      DO I = 1, K
-         IF( TAU(I).EQ.ZERO ) THEN
-*           TODO: error here if jobt == 2
-            CALL SLARFT_LVL2(DIRECT, STOREV, N, K, V, LDV, TAU,
-     $            T, LDT)
-            RETURN
-         END IF
-      END DO
-*
-*     If we reach here, then we guarantee the calls to dtrtri will not fail
+*     If we reach here, then we guarantee the calls to strtri will not fail
 *
 *     Determine what kind of Q we need to compute
 *     We assume that if the user doesn't provide 'F' for DIRECT,
@@ -239,7 +218,7 @@
       TDIRF = LSAME(DIRECT,'T')
       COLV = LSAME(STOREV,'C')
       TCOLV = LSAME(STOREV,'T')
-      INVT = LSAME(JOBT, '1')
+      INVT = LSAME(APPLYT, 'M')
 *
 *     QR happens when we have forward direction in column storage
 *
@@ -268,6 +247,9 @@
 *     compute the T that we would normally compute
 *
       RQ = (.NOT.RQT).AND.(.NOT.COLV)
+*
+*     Beginning of executable statements
+*
 *
 *     Note that in the following cases, we use ut(A) and lt(A) to
 *     denote the upper and lower triangular components of the matrix A
