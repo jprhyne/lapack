@@ -679,6 +679,12 @@
       ELSE IF( C2.EQ.'LA' ) THEN
          IF( C3.EQ.'RFT' ) THEN
             NX = 64
+         ELSE IF( C3.EQ.'LLM' ) THEN
+*
+*           Note that this matches on *lallm*, but we only use it in
+*           *lallm_recursive at the moment
+*
+            NX = 64
          END IF
       END IF
       ILAENV = NX
