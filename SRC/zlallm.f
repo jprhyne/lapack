@@ -1,17 +1,9 @@
-*> \brief \b ZLALLM computes the product LLH or UHU, where U and L are upper or lower triangular matrices (blocked algorithm).
+*> \brief \b ZLALLM computes the product LLH or UHU, where U and L are upper or lower triangular matrices (driver algorithm).
 *
 *  =========== DOCUMENTATION ===========
 *
 * Online html documentation available at
 *            http://www.netlib.org/lapack/explore-html/
-*
-*> Download zlallm + dependencies
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.tgz?format=tgz&filename=/lapack/lapack_routine/dlallm.f">
-*> [TGZ]</a>
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.zip?format=zip&filename=/lapack/lapack_routine/dlallm.f">
-*> [ZIP]</a>
-*> <a href="http://www.netlib.org/cgi-bin/netlibfiles.txt?format=txt&filename=/lapack/lapack_routine/dlallm.f">
-*> [TXT]</a>
 *
 *  Definition:
 *  ===========
@@ -23,7 +15,7 @@
 *       INTEGER            INFO, LDA, N
 *       ..
 *       .. Array Arguments ..
-*       COMPLEX*16   A( LDA, * )
+*       COMPLEX*16         A( LDA, * )
 *       ..
 *
 *
@@ -37,11 +29,11 @@
 *> the array A.
 *>
 *> If UPLO = 'U' or 'u' then the upper triangle of the result is stored,
-*> overwriting the factor U in A.
+*> overwriting the factor U in A, and the strictly lower triangular part
+*> of A is not referenced.
 *> If UPLO = 'L' or 'l' then the lower triangle of the result is stored,
-*> overwriting the factor L in A.
-*>
-*> This is the unblocked form of the algorithm, calling Level 2 BLAS.
+*> overwriting the factor L in A, and the strictly upper triangular part
+*> of A is not referenced.
 *> \endverbatim
 *
 *  Arguments:
@@ -67,9 +59,11 @@
 *>          A is COMPLEX*16 array, dimension (LDA,N)
 *>          On entry, the triangular factor U or L.
 *>          On exit, if UPLO = 'U', the upper triangle of A is
-*>          overwritten with the upper triangle of the product U**h * U;
+*>          overwritten with the upper triangle of the product U**h * U,
+*>          and the strictly lower triangular part of A is not referenced.
 *>          if UPLO = 'L', the lower triangle of A is overwritten with
-*>          the lower triangle of the product L * L**H.
+*>          the lower triangle of the product L * L**H, and the strictly
+*>          upper triangular part of A is not referenced.
 *> \endverbatim
 *>
 *> \param[in] LDA
@@ -108,13 +102,13 @@
       INTEGER            INFO, LDA, N
 *     ..
 *     .. Array Arguments ..
-      COMPLEX*16   A( LDA, * )
+      COMPLEX*16         A( LDA, * )
 *     ..
 *
 *  =====================================================================
 *
 *     .. Parameters ..
-      COMPLEX*16   ONE
+      COMPLEX*16         ONE
       PARAMETER          ( ONE = 1.0D+0 )
 *     ..
 *     .. Local Scalars ..
@@ -123,11 +117,11 @@
 *     ..
 *     .. External Functions ..
       LOGICAL            LSAME
-      !COMPLEX*16   ZDOTU
-      !EXTERNAL           LSAME, ZDOTU
+      EXTERNAL           LSAME
 *     ..
 *     .. External Subroutines ..
-      !EXTERNAL           ZGEMV, ZSCAL, XERBLA
+      EXTERNAL           XERBLA, ZLALLM_BLOCKED,
+     $                   ZLALLM_RECURSIVE
 *     ..
 *     .. Intrinsic Functions ..
       INTRINSIC          MAX
@@ -157,8 +151,8 @@
 *
 *     Here we dispatch to whatever is more efficient in a particular environment
 *     We are defaulting to recursive, but if you want to use the blocked variant
-*     Comment out the line starting with `CALL DLAUUM_RECURSIVE...`
-*     and uncomment the line starting with `CALL DLAUUM_BLOCKED...`
+*     Comment out the line starting with `CALL ZLAUUM_RECURSIVE...`
+*     and uncomment the line starting with `CALL ZLAUUM_BLOCKED...`
 *
       CALL ZLALLM_RECURSIVE(UPLO, N, A, LDA, INFO)
 *      CALL ZLALLM_BLOCKED(UPLO, N, A, LDA, INFO)
